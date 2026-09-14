@@ -3,6 +3,8 @@ import copy
 
 import pytest
 
+pytestmark = pytest.mark.skipif(__import__('os').name == 'nt', reason='심링크·FIFO·권한 테스트는 POSIX 전용')
+
 from autodocs.features import init
 from autodocs.foundation import PathEscape, norm_rel
 from autodocs.platform import fs, standard

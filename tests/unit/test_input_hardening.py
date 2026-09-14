@@ -3,6 +3,8 @@ import os
 
 import pytest
 
+pytestmark = pytest.mark.skipif(__import__('os').name == 'nt', reason='심링크·FIFO·권한 테스트는 POSIX 전용')
+
 from autodocs import cli
 from autodocs.features import audit, init
 from autodocs.features import profile as pm

@@ -1,7 +1,7 @@
 ---
 name: std-adopt
 description: 기존 프로젝트에 표준 마커·문서·계층 디렉터리를 만들고, 소스 파일의 계층 배치 계획서(PROP-000)를 생성한다. 코드는 옮기지 않는다
-allowed-tools: Bash(python3 *), Bash(*/bin/autodocs *), Read, Glob, AskUserQuestion
+allowed-tools: Bash(sh *), Bash(python3 *), Bash(python *), Read, Glob, AskUserQuestion
 ---
 
 이 명령은 두 단계로 나뉜다. **1단계는 엔진이 결정론적으로, 2단계는 사람과 AI 가 판단해서** 한다.
@@ -12,7 +12,7 @@ allowed-tools: Bash(python3 *), Bash(*/bin/autodocs *), Read, Glob, AskUserQuest
 2. 실행:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" adopt --name <name> --kind <kind> --language <language> [--api] [--db] $ARGUMENTS
+sh "${CLAUDE_PLUGIN_ROOT}/bin/py.sh" "${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" adopt --name <name> --kind <kind> --language <language> [--api] [--db] $ARGUMENTS
 ```
 
 3. 생성된 `docs/proposals/PROP-000-adopt-standard.md` 를 연다. "미분류 소스 파일" 표가 계층 배치 대상이다.

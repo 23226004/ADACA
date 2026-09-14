@@ -10,7 +10,7 @@ description: 회사 엔지니어링 표준(AI Harness Engineering Standard)이 �
 ## 작업 시작
 
 1. `docs/context/project-context.md` 를 읽는다. 프로젝트 규칙·현재 상태·용어집은 이 문서가 단일 원천이다. CLAUDE.md 는 포인터일 뿐이다.
-2. `"${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" audit` 를 실행한다. `compliant` 가 아니면 먼저 그 문제를 사용자에게 알린다 (`new` → /std-init, `legacy` → /std-adopt).
+2. `sh "${CLAUDE_PLUGIN_ROOT}/bin/py.sh" "${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" audit` 를 실행한다. `compliant` 가 아니면 먼저 그 문제를 사용자에게 알린다 (`new` → /std-init, `legacy` → /std-adopt).
 3. 작업과 관련된 문서를 읽는다: `docs/requirements/requirements.md`(무엇을), `docs/architecture/architecture.md`(구조), 관련 `docs/adr/`.
 
 ## 영향 범위 판단 — 어떤 문서를 갱신하는가
@@ -41,5 +41,5 @@ description: 회사 엔지니어링 표준(AI Harness Engineering Standard)이 �
 
 1. 테스트를 실행한다.
 2. 영향 받은 문서를 갱신했는지 위 표로 다시 확인한다. 코드와 문서는 같은 PR 에 들어간다.
-3. `"${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" check` 를 실행해 통과시킨다. `--override` 는 사람이 사유를 적어 쓰는 탈출구이며 AI 가 스스로 쓰지 않는다.
+3. `sh "${CLAUDE_PLUGIN_ROOT}/bin/py.sh" "${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" check` 를 실행해 통과시킨다. `--override` 는 사람이 사유를 적어 쓰는 탈출구이며 AI 가 스스로 쓰지 않는다.
 4. `CHANGELOG.md` 의 `[Unreleased]` 에 한 줄 추가한다.

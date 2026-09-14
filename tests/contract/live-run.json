@@ -1,7 +1,7 @@
 {
-  "recorded_at": "2026-09-14T06:35:34+00:00",
+  "recorded_at": "2026-09-14T06:42:33+00:00",
   "claude_version": "2.1.270",
-  "hooks_json_sha256": "4ae5fd6c5aec7fd430a887d4341ee0c8c1c1902e0741686461a020e6c9b5eb00",
+  "hooks_json_sha256": "997b5d324e44029a4cd7f6ca5ef918e0fab6160a539bf0850b44641701b4f56d",
   "method": "claude -p ... --plugin-dir <repo> --output-format stream-json --verbose, 빈 git 저장소 /tmp/live1 에서",
   "observed": {
     "plugin_validate": "passed with warnings (author 없음, 루트 CLAUDE.md 는 플러그인 컨텍스트로 로드되지 않음 — 둘 다 의도됨)",
@@ -10,11 +10,13 @@
     "/std-audit": "audit 실행 후 상태 요약 (초기엔 요약만 → 코드블록 인용 지시로 문구 강화)",
     "/std-init": "--name/--kind/--language 인자로 묻지 않고 init 실행, project-context 채우기를 사용자에게 요청",
     "PostToolUse(Write docs/**/*.md)": "hookSpecificOutput.additionalContext 가 모델에 전달되어 그대로 인용됨",
-    "Stop": "error 있으면 decision:block 으로 1회 알림 → 모델이 응답 → 두 번째 Stop 은 침묵 (세션당 1회 마커 동작). CC UI 는 이를 'Stop hook error occurred' 알림으로 표시함 — 정상 동작"
+    "Stop": "error 있으면 decision:block 으로 1회 알림 → 모델이 응답 → 두 번째 Stop 은 침묵 (세션당 1회 마커 동작). CC UI 는 이를 'Stop hook error occurred' 알림으로 표시함 — 정상 동작. 마커는 CLAUDE_PLUGIN_DATA(~/.claude/plugins/data/<plugin>/autodocs-stop/<session_id>.notified)에 생김 — 실측 확인",
+    "launcher": "훅·커맨드는 sh bin/py.sh 를 거쳐 python3(3.10+) 또는 python 을 선택. 이 형태로 SessionStart/PostToolUse/Stop 재실측 통과"
   },
   "not_verified": {
     "Edit(docs/**/*.md) 의 if": "Write 만 실측. Edit 은 동일 규칙이라 생략",
     "interactive AskUserQuestion in /std-init": "-p 모드에서는 질문 불가. 인자 없는 경우 대화형 세션에서 확인 필요",
-    "macOS 사용자 환경": "컨테이너(Linux) 에서만 실측. 사용자 셸에서 claude --plugin-dir 재확인 권장"
+    "macOS 사용자 환경": "컨테이너(Linux) 에서만 실측. 사용자 셸에서 claude --plugin-dir 재확인 권장",
+    "Windows": "Git Bash 환경에서 sh/python 선택과 경로 처리는 미실측. 사용자 Windows 테스트 예정"
   }
 }

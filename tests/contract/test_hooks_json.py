@@ -83,10 +83,11 @@ def test_once_not_declared(cfg):
 
 def test_commands_resolve_to_plugin_files(cfg):
     for event, _, h in _entries(cfg):
-        m = re.search(r'\$\{CLAUDE_PLUGIN_ROOT\}/([^"\s]+)', h["command"])
-        assert m, f"{event}: ${{CLAUDE_PLUGIN_ROOT}} 미참조 — {h['command']}"
-        target = REPO / m.group(1)
-        assert target.is_file(), f"{event}: {target} 없음"
+        refs = re.findall(r'\$\{CLAUDE_PLUGIN_ROOT\}/([^"\s]+)', h["command"])
+        assert refs, f"{event}: ${{CLAUDE_PLUGIN_ROOT}} 미참조 — {h['command']}"
+        for r in refs:
+            assert (REPO / r).is_file(), f"{event}: {REPO / r} 없음"
+        assert h["command"].startswith("sh "), f"{event}: 훅은 bin/py.sh 를 통해 실행해야 함 (Windows 의 python3 부재 대응)"
         assert "\\" not in h["command"]
 
 
@@ -100,7 +101,7 @@ def test_commands_and_skill_exist_and_have_frontmatter():
     for name in ("std-init", "std-adopt", "std-audit", "std-check"):
         text = (REPO / "commands" / f"{name}.md").read_text(encoding="utf-8")
         assert text.startswith("---\n") and f"name: {name}\n" in text and "description:" in text
-        assert "${CLAUDE_PLUGIN_ROOT}/bin/autodocs" in text
+        assert 'sh "${CLAUDE_PLUGIN_ROOT}/bin/py.sh" "${CLAUDE_PLUGIN_ROOT}/bin/autodocs"' in text
     skill = (REPO / "skills" / "standard-workflow" / "SKILL.md").read_text(encoding="utf-8")
     assert skill.startswith("---\n") and "name: standard-workflow" in skill
     assert (REPO / "bin" / "autodocs").stat().st_mode & 0o111, "bin/autodocs 는 실행 가능해야 함"

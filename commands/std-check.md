@@ -1,13 +1,13 @@
 ---
 name: std-check
 description: PR 전 게이트. audit 와 같지만 error 가 있으면 실패(exit 1)한다
-allowed-tools: Bash(python3 *), Bash(*/bin/autodocs *), Read
+allowed-tools: Bash(sh *), Bash(python3 *), Bash(python *), Read
 ---
 
 다음 명령을 실행하라.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" check $ARGUMENTS
+sh "${CLAUDE_PLUGIN_ROOT}/bin/py.sh" "${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" check $ARGUMENTS
 ```
 
 - exit 0: "표준 검사 통과" 한 줄만 보고한다.
