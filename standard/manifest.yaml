@@ -1,0 +1,404 @@
+# =============================================================================
+# AI Harness Engineering Standard — Manifest (SSOT)
+# =============================================================================
+# 이 파일은 표준의 "기계 판독용 단일 진실 원천"이다.
+#   - 엔진(autodocs CLI)의 init / audit / check 는 이 파일만 입력으로 읽는다.
+#   - 앱별 어댑터(Claude plugin, Codex AGENTS.md, Gemini extension)는 이 파일을
+#     참조하도록 지시할 뿐, 규칙을 중복 기술하지 않는다.
+#   - 사람이 읽는 설명서(ref/*.md)는 이 파일의 "근거 문서"이며, 충돌 시 이 파일이 우선한다.
+#
+# 표기 규칙
+#   - `# [D-xx]` 주석이 붙은 값은 아직 확정되지 않은 결정 항목이다. (DECISIONS.md 참조)
+#     현재 값은 권장안이며, 결정 후 주석을 제거한다.
+# =============================================================================
+
+standard:
+  name: AI Harness Engineering Standard
+  version: 0.1.0                      # 표준 자체의 버전. 프로젝트는 이 버전을 pin 한다. [D-07]
+  source_docs:                        # 근거 문서 (사람용)
+    - ref/업무 표준화 제안서 초안 (1).md
+    - ref/AI_Harness_Engineering_Documentation_Standard.md
+    - ref/AI_Harness_Engineering_Project_Structure_Standard.md
+  principles:
+    - 사람은 요구사항과 변경 의도를 정의하고, AI는 구현과 함께 문서를 최신 상태로 유지한다.
+    - 변경 영향이 있는 문서만 갱신한다. 문서를 무조건 생성하지 않는다.
+    - 코드와 문서는 같은 PR 에서 함께 변경한다.
+    - 구조(Architecture, ERD)는 Mermaid, API 는 OpenAPI 를 SSOT 로 사용한다.
+    - 중요한 결정은 ADR 로 이유와 대안을 함께 남긴다.
+    - 문서는 현재 상태를 표현한다. 과거는 ADR / Changelog / Git history 에서 추적한다.
+
+# -----------------------------------------------------------------------------
+# 1. 프로젝트 프로필
+#    프로젝트가 자기 특성을 선언하는 항목. init 시 질문으로 채우고
+#    .standard/project.yaml 에 저장된다. 조건부 문서/구조는 이 값으로 판정한다.
+# -----------------------------------------------------------------------------
+project_profile:
+  schema:
+    name:            { type: string,  required: true }
+    kind:            { type: enum,    required: true,
+                       values: [cad-addon, web, desktop, cli, ai-agent, library, service] }
+    language:        { type: enum,    required: true,
+                       values: [python, csharp, typescript, java, mixed] }
+    has_api:         { type: bool,    default: false }   # → docs.api 필수 여부
+    has_database:    { type: bool,    default: false }   # → docs.database 필수 여부
+    layout_preset:   { type: string,  default: generic } # → structure.presets 중 하나 [D-02]
+    standard_version: { type: string, required: true }  # pin 된 표준 버전 [D-07]
+
+# -----------------------------------------------------------------------------
+# 2. 문서 (Documentation Standard)
+# -----------------------------------------------------------------------------
+docs:
+  root: docs
+  language: ko                        # 본문 언어. 식별자(REQ-, ADR-, 헤딩 키워드)는 영문 유지 [D-06]
+  id_format:
+    requirement: "REQ-{n:03d}"
+    proposal:    "PROP-{n:03d}"
+    adr:         "ADR-{n:03d}"
+
+  # requirement 값
+  #   required     : 모든 프로젝트 필수. init 이 생성, audit 이 누락 시 FAIL.
+  #   conditional  : project_profile 조건 충족 시 필수. (when: 필드)
+  #   optional     : 필요할 때만 생성. audit 은 존재 여부를 검사하지 않고, 존재하면 형식만 검사.
+  types:
+
+    readme:
+      title: 프로젝트 개요
+      category: project
+      requirement: required
+      path: README.md
+      format: markdown
+      template: templates/README.md
+      sections: [프로젝트 목적, 주요 기능, 기술 스택, 실행 방법, 문서 안내]
+      update_triggers:
+        - 프로젝트 목적 변경
+        - 주요 기능 추가·삭제
+        - 실행 방법 변경
+        - 핵심 기술 스택 변경
+        - 문서 진입 경로 변경
+      not_triggers:
+        - 단순 내부 구현 변경
+
+    project_context:                  # 제안서 5축의 "Project Context". 문서 표준 9종 외 신설 (D-04 확정)
+      title: 프로젝트 컨텍스트
+      category: project
+      requirement: required
+      path: docs/context/project-context.md
+      format: markdown
+      template: templates/project-context.md
+      sections: [프로젝트 요약, 현재 상태, 기술 스택, 아키텍처 요약, 공통 규칙, 용어집, 현재 작업 현황]
+      update_triggers:
+        - Release 완료
+        - 현재 작업 현황 변경
+        - 용어 추가·변경
+        - 공통 규칙 변경
+      note: >
+        AI 도구가 작업 시작 시 가장 먼저 읽는 문서. CLAUDE.md / AGENTS.md / GEMINI.md 는
+        이 문서를 가리키는 얇은 포인터로만 사용한다. (규칙 본문을 어댑터 파일에 중복 기술하지 않는다)
+
+    requirements:
+      title: 요구사항 명세서
+      category: project
+      requirement: required
+      path: docs/requirements/requirements.md
+      format: markdown
+      template: templates/requirements.md
+      item_format: "## {id} {title}"      # REQ-001 형태, 각 항목은 목적 + 번호 매긴 요구사항
+      update_triggers:
+        - 새로운 요구사항 추가
+        - 기존 요구사항 변경
+        - 요구사항 삭제
+        - 사용자 요구 또는 업무 규칙 변경
+
+    architecture:
+      title: 아키텍처 설계서
+      category: project
+      requirement: required
+      path: docs/architecture/architecture.md
+      format: markdown+mermaid
+      template: templates/architecture.md
+      must_contain: [mermaid:flowchart]      # 최소 하나의 flowchart 블록
+      sections: [시스템 구성도, 컴포넌트 책임, 데이터 흐름, 설계 원칙, 계층 매핑]
+      update_triggers:
+        - Layer 추가·삭제
+        - Module 책임 변경
+        - 외부 시스템 연동 구조 변경
+        - 주요 데이터 흐름 변경
+        - 공통 모듈 구조 변경
+      not_triggers:
+        - 단순 클래스 추가
+        - 작은 기능 구현
+
+    api:
+      title: API 명세서
+      category: project
+      requirement: conditional
+      when: project_profile.has_api == true
+      path: docs/api/openapi.yaml
+      format: openapi
+      openapi_version: "3.1.0"
+      template: templates/openapi.yaml
+      rule: Markdown 에 Request/Response 를 중복 작성하지 않는다. OpenAPI 가 API 계약의 SSOT.
+      update_triggers:
+        - Endpoint 추가·삭제
+        - Request/Response Schema 변경
+        - 인증 방식 변경
+        - 오류 Response 변경
+        - API 구현과 OpenAPI 간 불일치 발생
+
+    database:
+      title: 데이터베이스 설계서
+      category: project
+      requirement: conditional
+      when: project_profile.has_database == true
+      path: docs/database/database.md
+      format: markdown+mermaid
+      template: templates/database.md
+      must_contain: [mermaid:erDiagram]
+      sections: [ERD, 테이블 설명, 제약조건, 인덱스]
+      update_triggers:
+        - Table 추가·삭제
+        - Column 추가·삭제·타입 변경
+        - Relation 변경
+        - Primary/Foreign Key 변경
+        - 주요 Index 또는 Constraint 변경
+
+    proposal:
+      title: 기능·변경 제안서
+      category: task
+      requirement: optional
+      path: docs/proposals/{id}.md
+      format: markdown
+      template: templates/proposal.md
+      sections: [제안 배경, 제안 내용, 기대 효과, 예상 영향 범위, 참고 자료]
+      create_when:                        # AI 가 "필요한가?" 판단 시 참고하는 기준
+        - 다른 사람이 담당하는 기능 변경
+        - UI/UX 변경
+        - 기존 업무 프로세스 변경
+        - 여러 Module 에 영향을 주는 기능
+        - 구현 전에 의견 수렴이 필요한 아이디어
+      lifecycle: 작업 완료 후 기록으로 보관 (삭제하지 않음)
+
+    adr:
+      title: 아키텍처 의사결정 기록
+      category: decision
+      requirement: optional
+      path: docs/adr/{id}.md
+      format: markdown
+      template: templates/adr.md
+      sections: [Status, Context, Decision, Reason, Alternatives, Consequences]
+      status_values: [Proposed, Accepted, Deprecated, Superseded]
+      create_when:
+        - 새로운 Framework 도입
+        - Database 변경
+        - 인증 방식 변경
+        - 프로젝트 구조 변경
+        - 핵심 통신 방식 변경
+        - 공통 Module 설계 변경
+      do_not_create_when:
+        - 변수명 변경
+        - 단순 UI 수정
+        - 작은 버그 수정
+        - 기존 구조 내 기능 추가
+      lifecycle: 영구 보관
+
+    release_note:
+      title: 배포 노트
+      category: release
+      requirement: optional               # Release 를 하는 프로젝트만 [D-08]
+      path: docs/releases/v{version}.md
+      format: markdown
+      template: templates/release-note.md
+      sections: [Added, Changed, Fixed]
+      generated_from: [commits, pull_requests, issues]
+
+    changelog:
+      title: 변경 이력
+      category: release
+      requirement: required
+      path: CHANGELOG.md
+      format: markdown                    # Keep a Changelog 형식
+      template: templates/CHANGELOG.md
+      entry_format: "## [{version}] - {date}"
+      sections: [Added, Changed, Fixed]
+      update_triggers:
+        - PR Merge
+        - Release
+
+# -----------------------------------------------------------------------------
+# 3. 프로젝트 구조 (Project Structure Standard)
+# -----------------------------------------------------------------------------
+structure:
+  # 최상위 디렉터리. requirement 의미는 docs.types 와 동일.
+  top_level:
+    README.md:      { requirement: required }
+    CHANGELOG.md:   { requirement: required }
+    docs/:          { requirement: required }
+    src/:           { requirement: required }
+    tests/:         { requirement: required }
+    tests/unit/:    { requirement: required }
+    tests/integration/: { requirement: optional }
+    tests/e2e/:     { requirement: optional }
+    config/:        { requirement: optional }   # [D-09]
+    tools/:         { requirement: optional }   # [D-09]
+    .github/:       { requirement: optional }   # GitHub Workflow 축 확정 후 required 검토
+    .standard/:     { requirement: required }   # 표준 준수 마커 (아래 compliance 참조)
+
+  # 4계층. 디렉터리명 확정 (D-01): foundation / platform / features / customization
+  layers:
+    - id: L0
+      name: foundation
+      dir: src/foundation
+      role: [Logging, Exception, Common Utility, Security, Contracts]
+      change_policy: 공통 표준 변경 시에만 수정. 일반 기능 개발로는 수정하지 않음.
+      review: required
+    - id: L1
+      name: platform
+      dir: src/platform
+      role: [External API, File System, Authentication, Database, Host API(AutoCAD 등)]
+      change_policy: 변경 가능. 외부 시스템 영향 확인.
+      review: recommended
+    - id: L2
+      name: features
+      dir: src/features
+      role: [실제 비즈니스 기능 구현]
+      change_policy: 일반 개발 영역. 새로운 기능은 우선 L2 에서 구현.
+      review: normal
+    - id: L3
+      name: customization
+      dir: src/customization
+      role: [프로젝트별 규칙, 고객사 설정, 템플릿, Mapping]
+      change_policy: 프로젝트별 자유 변경. 공통 모듈에는 영향 없음.
+      review: normal
+
+  # 의존성 규칙: 상위 → 하위 방향만 허용. (Customization → Features → Platform → Foundation)
+  dependency_rules:
+    direction: downward_only
+    allowed:
+      - { from: L3, to: [L2, L1, L0] }
+      - { from: L2, to: [L1, L0] }
+      - { from: L1, to: [L0] }
+      - { from: L0, to: [] }
+    forbidden_examples:
+      - { from: L0, to: L2 }   # Foundation 은 상위 비즈니스 기능을 알지 않아야 한다
+      - { from: L0, to: L1 }
+      - { from: L1, to: L2 }
+
+  # 언어/프레임워크별 레이아웃 프리셋. 프레임워크가 구조를 강제하는 경우 4계층을 어떻게
+  # 매핑할지 정의한다. [D-02] — 아래는 자리만 잡은 초안.
+  presets:
+    generic:
+      description: 표준 구조 그대로 (src/foundation ... )
+      layer_dirs: { L0: src/foundation, L1: src/platform, L2: src/features, L3: src/customization }
+    python-package:
+      description: "src/{package}/ 아래에 4계층 배치"
+      layer_dirs: { L0: "src/{package}/foundation", L1: "src/{package}/platform",
+                    L2: "src/{package}/features", L3: "src/{package}/customization" }
+    dotnet-solution:
+      description: 계층별 프로젝트(.csproj) 분리
+      layer_dirs: { L0: "src/{Name}.Foundation", L1: "src/{Name}.Platform",
+                    L2: "src/{Name}.Features", L3: "src/{Name}.Customization" }
+    sveltekit:
+      description: "routes 는 L2 진입점, lib 아래에 계층 배치"
+      layer_dirs: { L0: src/lib/foundation, L1: src/lib/platform,
+                    L2: src/lib/features, L3: src/lib/customization }
+      notes: "src/routes 는 L2(features) 의 얇은 진입점으로 취급. 비즈니스 로직 금지."
+
+  # AI 작업 순서 원칙 (Structure Standard §6)
+  change_resolution_order: [L2, L3, L1, L0]   # 가능하면 낮은 영향도에서 해결
+
+# -----------------------------------------------------------------------------
+# 4. 개발 워크플로우 (Development Workflow + 문서 표준 §6/§8 통합)
+#    문서 표준 §8 의 13단계와 구조 표준 §6 의 7단계를 하나로 합친 것.
+# -----------------------------------------------------------------------------
+workflow:
+  task_start:                         # 어댑터가 AI 에게 강제하는 시작 절차
+    - read: [readme, project_context, requirements, architecture]
+    - read_related: [adr]
+    - analyze: 현재 Task / Issue
+    - run: autodocs audit                # 준수 상태 판정 (new / partial / compliant)
+    - decide: 영향 범위 (문서 + 계층)
+  task_body:                          # 조건 → 행동. 조건 판단은 AI, 행동 결과 검증은 엔진(check)
+    - { when: proposal_needed,        then: "proposal 생성 또는 갱신" }
+    - { when: architecture_changed,   then: "architecture 갱신 (Mermaid 포함)" }
+    - { when: api_changed,            then: "api(openapi.yaml) 갱신" }
+    - { when: database_changed,       then: "database 갱신 (Mermaid ERD 포함)" }
+    - { when: significant_decision,   then: "adr 생성" }
+    - { when: always,                 then: "구현 — change_resolution_order 순으로 낮은 계층 우선" }
+    - { when: always,                 then: "테스트" }
+    - { when: always,                 then: "영향 받은 문서만 갱신" }
+  task_end:
+    - run: autodocs check                # 코드-문서 정합성 검증
+    - pull_request
+    - merge → changelog 갱신
+    - release? → release_note 생성 → project_context 갱신
+  definition_of_done:                  # [D-10] 초안
+    - 테스트 통과
+    - autodocs check 통과
+    - 영향 받은 문서 갱신 완료
+    - PR 템플릿 항목 작성
+
+# -----------------------------------------------------------------------------
+# 5. 준수 상태 판정 (엔진 audit 규칙)
+# -----------------------------------------------------------------------------
+compliance:
+  marker:
+    path: .standard/project.yaml       # project_profile 값 + standard_version 저장 (D-05 확정)
+  states:
+    new:        "marker 없음 AND src/ 없음 (또는 비어 있음) → init 대상"
+    legacy:     "marker 없음 AND src/ 또는 코드 존재 → adopt(리팩토링) 대상"
+    partial:    "marker 있음 AND 하나 이상의 required 항목 누락 또는 규칙 위반"
+    compliant:  "marker 있음 AND 모든 required/conditional 항목 충족 AND 규칙 위반 없음"
+  checks:                              # 각 check 는 O(n) 단일 파일 시스템 스캔 위에서 수행
+    - id: C01
+      name: required_docs_present
+      severity: error
+    - id: C02
+      name: conditional_docs_present
+      severity: error
+    - id: C03
+      name: required_dirs_present
+      severity: error
+    - id: C04
+      name: layer_dirs_present
+      severity: error
+    - id: C05
+      name: dependency_direction
+      severity: error
+      note: import/using 문을 계층 dir 기준으로 매핑해 상향 의존 검출
+    - id: C06
+      name: doc_required_sections
+      severity: warning
+    - id: C07
+      name: mermaid_block_present
+      severity: warning
+      applies_to: [architecture, database]
+    - id: C08
+      name: openapi_valid
+      severity: error
+      applies_to: [api]
+    - id: C09
+      name: standard_version_pinned
+      severity: warning
+    - id: C10
+      name: changelog_has_unreleased_or_latest
+      severity: warning
+    - id: C11
+      name: adapter_files_are_pointers        # CLAUDE.md 등이 project_context 를 가리키는지
+      severity: warning
+
+# -----------------------------------------------------------------------------
+# 6. 앱 어댑터 (얇은 층). 규칙 본문은 이 manifest 와 docs/context 에만 둔다.
+# -----------------------------------------------------------------------------
+adapters:
+  claude:
+    kind: claude-code-plugin
+    pointer_file: CLAUDE.md
+    provides: [commands: [std-init, std-adopt, std-audit, std-check], skills: [standard-workflow], hooks: [pre-pr-check]]
+  codex:
+    kind: agents-md+skill
+    pointer_file: AGENTS.md
+    status: planned
+  gemini:
+    kind: gemini-extension
+    pointer_file: GEMINI.md
+    status: planned

@@ -1,0 +1,32 @@
+openapi: 3.1.0
+
+info:
+  title: $project_name API
+  version: 0.1.0
+  description: |
+    이 파일이 API 계약의 단일 원천(SSOT)이다. Markdown 에 Request/Response 를 중복 작성하지 않는다.
+    갱신 시점: Endpoint 추가·삭제, Schema 변경, 인증 방식 변경, 오류 Response 변경.
+
+servers:
+  - url: http://localhost:8000
+
+paths:
+  /health:
+    get:
+      summary: 헬스 체크
+      operationId: getHealth
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  schemas: {}
+  securitySchemes: {}

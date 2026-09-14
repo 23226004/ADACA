@@ -1,0 +1,7 @@
+name: autodocs
+kind: cli
+language: python
+standard_version: 0.1.0
+has_api: false
+has_database: false
+layout_preset: python-package
