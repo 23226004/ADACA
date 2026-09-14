@@ -2,6 +2,7 @@
 
   autodocs audit  [--json]                     준수 상태 판정 (new/legacy/partial/compliant)
   autodocs check  [--json] [--override 사유]    audit 와 같으나 error 가 있으면 exit 1 (PR 게이트용)
+                                               --override 는 .standard/overrides.log 에 기록되며 AUTODOCS_STRICT=1 이면 금지
   autodocs init   --name X --kind web --language python [--api] [--db] [--preset generic] [--no-adapters]
   autodocs adopt  (init 과 동일 인자)            기존 프로젝트: 마커·문서 생성 + 계층 배치 계획서
 
@@ -10,11 +11,13 @@ exit code: 0 통과 · 1 위반 있음 · 2 엔진/사용 오류 (잘못된 입�
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from autodocs.features import adopt, audit, init, profile as profile_mod, report
-from autodocs.foundation import AutodocsError
+from autodocs.foundation import AutodocsError, safe_path
 from autodocs.platform import fs, standard
 
 
@@ -70,9 +73,25 @@ def _cmd_audit(args, manifest: dict) -> int:
     if not args.strict or rep.ok:
         return 0
     if override:
-        print(f"OVERRIDE: 위반 {len(rep.errors)}건을 사유 '{override}' 로 통과시킴", file=sys.stderr)
+        if os.environ.get("AUTODOCS_STRICT", "").lower() in ("1", "true", "yes"):
+            print(f"error: AUTODOCS_STRICT 환경에서는 --override 를 쓸 수 없습니다 (위반 {len(rep.errors)}건)", file=sys.stderr)
+            return 1
+        _log_override(args.root, override, rep)
+        print(f"OVERRIDE: 위반 {len(rep.errors)}건을 사유 '{override}' 로 통과시킴 (.standard/overrides.log 에 기록)", file=sys.stderr)
         return 0
     return 1
+
+
+def _log_override(root: Path, reason: str, rep) -> None:
+    """탈출구 사용 흔적. 저장소에 남아 리뷰·감사에서 보인다."""
+    line = f"{datetime.now(timezone.utc).isoformat(timespec='seconds')} | {reason} | " \
+           f"{'; '.join(f'[{f.check_id}] {f.message}' for f in rep.errors)}\n"
+    path = safe_path(root, ".standard/overrides.log")
+    if path.is_symlink():
+        raise AutodocsError("overrides.log 가 심볼릭 링크입니다 — 감사 로그는 일반 파일이어야 합니다")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(line)
 
 
 def _profile(args, manifest: dict):

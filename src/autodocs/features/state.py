@@ -1,19 +1,20 @@
 """L2 — 준수 상태 판정 (manifest.compliance.states / code_detection)."""
 from __future__ import annotations
 
-from autodocs.foundation import Finding, Severity, Snapshot, State, norm_rel
+from autodocs.foundation import Finding, ManifestInvalid, Severity, Snapshot, State, norm_rel
 from autodocs.features.profile import marker_rel
 
-_DEFAULT_DETECTION = {"source_dirs": ["src"], "exclude_dirs": ["tests", "test", "docs", "tools", "config"], "min_source_files": 1}
 
 
 def has_code(manifest: dict, snapshot: Snapshot) -> bool:
-    """"코드 있음" 판정. manifest.compliance.code_detection 이 규칙을 정한다.
+    """"코드 있음" 판정. manifest.compliance.code_detection 이 규칙을 정한다 (코드에 기본값 없음).
 
     - source_dirs 중 하나에 소스 파일이 하나라도 있으면 True (빈 src/ 는 코드 없음)
     - 그 외 위치의 소스 파일은 exclude_dirs 아래가 아니면 셈에 넣는다
     """
-    rule = {**_DEFAULT_DETECTION, **manifest["compliance"].get("code_detection", {})}
+    rule = manifest["compliance"].get("code_detection")
+    if not rule or not {"source_dirs", "exclude_dirs", "min_source_files"} <= set(rule):
+        raise ManifestInvalid("manifest compliance.code_detection 에 source_dirs / exclude_dirs / min_source_files 가 필요합니다")
     src_dirs = [norm_rel(d) for d in rule["source_dirs"]]
     excl = [norm_rel(d) for d in rule["exclude_dirs"]]
     n = 0

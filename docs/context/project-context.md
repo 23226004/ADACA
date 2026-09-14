@@ -35,7 +35,8 @@
 
 - **manifest 가 규칙의 원천이다.** 검사 항목·문서 종류·계층 이름을 코드에 하드코딩하지 않는다. 새 check 는 manifest 에 선언 + `features/checks/` 레지스트리에 등록, 둘 중 하나만 하면 테스트가 실패한다.
 - 파일 시스템은 명령당 **한 번만** 걷는다 (`platform.fs.scan` → `Snapshot`). check 는 Snapshot 만 본다.
-- `init` 은 기존 파일·마커를 절대 덮어쓰지 않는다. 엔진이 만드는 모든 경로는 `fs.safe_path` 를 거친다 (manifest 값도 신뢰하지 않음).
+- `init` 은 기존 파일·마커를 절대 덮어쓰지 않는다. 엔진이 읽거나 쓰는 모든 경로는 `foundation.safe_path` 를 거친다 (manifest 값도 신뢰하지 않음). 심링크는 목적지가 root 안일 때만 허용.
+- **대상 프로젝트의 입력은 엔진을 죽이지 않는다.** 잘못된 project.yaml, 권한 없는 파일, 심링크 루프, FIFO 는 finding 이 되지 exit 2 가 되지 않는다. exit 2 는 manifest·CLI·표준 위치 같은 엔진 쪽 문제에만.
 - 엔진은 판단하지 않는다. "이 파일이 어느 계층인가" 같은 판단은 계획서(PROP-000)로 AI/사람에게 넘긴다.
 - 코드와 문서는 같은 PR 에서 함께 변경한다. 작업 종료 전 `PYTHONPATH=src python -m autodocs check` 와 `pytest` 통과.
 
@@ -55,8 +56,8 @@
 
 | 항목 | 상태 | 비고 |
 |---|---|---|
-| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 54개 |
-| PROP-001 리뷰 수정 1·2단계 (경로 가드, 비파괴, 종료코드) | 완료 | `docs/proposals/PROP-001-engine-review.md` |
+| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 81개 |
+| PROP-001 리뷰 수정 1·2단계 + 재검증 2회 (회귀 R1~R8, 입력 강건화 N1~N6) | 완료 | `docs/proposals/PROP-001-engine-review.md` |
 | PROP-001 3~6단계 (manifest 정책 이동, C05 재작성, 입력 검증) | 다음 | bkit 참조: `ref/bkit-reference-notes.md` |
 | 문서 템플릿 11종 | 완료 | `standard/templates/` |
 | Claude Code 플러그인 (commands/skill/hook) | 다음 | manifest `adapters.claude` |

@@ -44,11 +44,21 @@ def doc_required_sections(ctx: Context) -> list[Finding]:
         if not p or not spec.get("sections") or not ctx.snapshot.has_file(p) or spec.get("format") == "openapi":
             continue
         text = ctx.snapshot.read(p)
-        headings = {h.strip() for h in re.findall(r"^#{1,3}\s+(.+?)\s*$", text, re.M)}
+        headings = {_norm_heading(h) for h in re.findall(r"^#{1,3}\s+(.+?)\s*$", text, re.M)}
         for sec in spec["sections"]:
-            if not any(sec in h for h in headings):
+            if _norm_heading(sec) not in headings:
                 out.append(_f(f"{key}: 섹션 '{sec}' 없음", p, f"'## {sec}' 헤딩 추가"))
     return out
+
+
+_HEAD_NUM = re.compile(r"^(?:\d+[.)]|[IVX]+\.)\s*")
+_HEAD_TAIL = re.compile(r"\s*(?:[—–\-:(].*)?$")   # ' — 부제', ' - 부제', ':', '(…)' 제거
+
+
+def _norm_heading(h: str) -> str:
+    """'## 2. **프로젝트 목적**: 개요' → '프로젝트 목적'. 번호·강조·후행 부제/콜론은 무시하고 본문만 비교."""
+    h = _HEAD_NUM.sub("", h.strip()).strip("*_` ").strip()
+    return _HEAD_TAIL.sub("", h).strip("*_` ").strip()
 
 
 def mermaid_block_present(ctx: Context) -> list[Finding]:

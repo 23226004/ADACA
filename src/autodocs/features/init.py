@@ -14,7 +14,7 @@ from autodocs.features import layout, profile as profile_mod
 from autodocs.foundation import Profile
 from autodocs.platform import fs, standard
 
-_LEFTOVER = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?")
+_LEFTOVER = re.compile(r"\$\{?([a-z][a-z0-9_]*)\}?")   # 템플릿 변수는 소문자 snake_case. $HOME 같은 셸 변수는 무시
 
 
 @dataclass
@@ -24,10 +24,12 @@ class InitResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = True) -> InitResult:
+def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = True,
+        extra_files: tuple[str, ...] = ()) -> InitResult:
     root = fs.require_dir(root, "프로젝트 루트")
     res = InitResult()
     subs = _substitutions(manifest, profile)
+    fs.preflight(root, targets(manifest, profile, with_adapters, extra_files))   # 하나라도 문제면 아무것도 쓰지 않는다
 
     for d in layout.required_dirs(manifest):
         _track(res, d + "/", fs.ensure_dir(root, d))
@@ -52,6 +54,17 @@ def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = T
     rel, created = profile_mod.save(manifest, root, profile)
     _track(res, rel, created)
     return res
+
+
+def targets(manifest: dict, profile: Profile, with_adapters: bool, extra_files: tuple[str, ...] = ()) -> list[tuple[str, str]]:
+    """init/adopt 이 건드릴 수 있는 모든 (rel, kind). 검증용이며 실제 쓰기 순서와 무관."""
+    dirs = list(layout.required_dirs(manifest)) + list(layout.layer_dirs(manifest, profile).values())
+    dirs += [Path(s["path"]).parent.as_posix() for s in layout.optional_docs(manifest).values()]
+    files = [p for p in (layout.doc_path(s) for s in layout.required_docs(manifest, profile).values()) if p]
+    if with_adapters:
+        files += [ad["pointer_file"] for ad in manifest.get("adapters", {}).values() if ad.get("pointer_file")]
+    files += [profile_mod.marker_rel(manifest), *extra_files]
+    return [(d, "dir") for d in dirs if d not in (".", "")] + [(f, "file") for f in files]
 
 
 def _substitutions(manifest: dict, profile: Profile) -> dict[str, str]:

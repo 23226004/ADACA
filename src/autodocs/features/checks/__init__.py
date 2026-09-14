@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from autodocs.foundation import Context, Finding, Severity
+from autodocs.foundation import AutodocsError, Context, Finding, ProfileInvalid, Severity
 
 from . import docs, meta, structure
 
@@ -37,5 +37,15 @@ def run_all(ctx: Context) -> list[Finding]:
             out.append(Finding(spec["id"], Severity.INFO, f"check '{spec['name']}' 미구현"))
             continue
         sev = Severity(spec.get("severity", "error"))
-        out.extend(Finding(spec["id"], sev, f.message, f.path, f.fix_hint) for f in fn(ctx))
+        try:
+            results = fn(ctx)
+        except ProfileInvalid as e:   # 프로필 유래 오류는 프로젝트의 문제 → C00 (같은 메시지는 한 번만)
+            f = Finding("C00", Severity.ERROR, str(e), ctx.manifest["compliance"]["marker"]["path"])
+            if f not in out:
+                out.append(f)
+            continue
+        except AutodocsError as e:    # 읽기 실패·root 밖 심링크 등 대상 프로젝트의 문제 → 해당 check 의 finding
+            out.append(Finding(spec["id"], Severity.ERROR, str(e)))
+            continue
+        out.extend(Finding(spec["id"], sev, f.message, f.path, f.fix_hint) for f in results)
     return out

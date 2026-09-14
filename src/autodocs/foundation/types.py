@@ -6,9 +6,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
-from .errors import PathEscape
+from .errors import AutodocsError
+from .paths import norm_rel, safe_path
 
 
 class Severity(str, Enum):
@@ -24,23 +25,6 @@ class State(str, Enum):
     LEGACY = "legacy"        # 마커 없음, 코드 있음 → adopt
     PARTIAL = "partial"      # 마커 있음, 위반 있음
     COMPLIANT = "compliant"  # 마커 있음, 위반 없음
-
-
-def norm_rel(rel: str) -> str:
-    """루트 기준 상대 경로의 유일한 정규형. 엔진 안의 모든 상대 경로는 이 함수를 거친다.
-
-    - 구분자는 '/', 앞뒤 '/' 제거, '.' 세그먼트 제거
-    - 절대 경로, '..', 빈 세그먼트, null byte 는 PathEscape (root 밖을 가리킬 수 있는 입력은 전부 거부)
-    """
-    if not isinstance(rel, str) or "\x00" in rel:
-        raise PathEscape(f"잘못된 경로: {rel!r}")
-    s = rel.replace("\\", "/")
-    if s.startswith("/") or (len(s) > 1 and s[1] == ":"):
-        raise PathEscape(f"절대 경로는 허용하지 않음: {rel}")
-    parts = [p for p in s.split("/") if p not in ("", ".")]
-    if any(p == ".." for p in parts):
-        raise PathEscape(f"'..' 는 허용하지 않음: {rel}")
-    return "/".join(parts)
 
 
 @dataclass(frozen=True)
@@ -65,6 +49,7 @@ class Snapshot:
     files: frozenset[str]          # root 기준 상대 경로 (posix). 파일만.
     dirs: frozenset[str]           # 상대 경로. 끝에 '/' 없음.
     source_files: frozenset[str]   # 소스 코드로 간주되는 파일의 부분집합
+    errors: tuple[str, ...] = ()   # 스캔 중 읽을 수 없었던 디렉터리 (권한 등). audit 가 finding 으로 올린다
     _cache: dict = field(default_factory=dict, repr=False, compare=False)
 
     def has_file(self, rel: str) -> bool:
@@ -75,8 +60,11 @@ class Snapshot:
 
     def read(self, rel: str) -> str:
         key = norm_rel(rel)
-        if key not in self._cache:
-            self._cache[key] = (self.root / PurePosixPath(key)).read_text(encoding="utf-8", errors="replace")
+        if key not in self._cache:   # 읽기도 쓰기와 같은 경로 정책 (root 밖 심링크 거부)
+            try:
+                self._cache[key] = safe_path(self.root, key).read_text(encoding="utf-8", errors="replace")
+            except OSError as e:      # 권한 등. 호출자(check) 가 finding 으로 바꾼다
+                raise AutodocsError(f"읽기 실패: {key} ({e.strerror or e})") from e
         return self._cache[key]
 
     @property

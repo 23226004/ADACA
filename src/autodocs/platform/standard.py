@@ -12,8 +12,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from autodocs.foundation import ManifestInvalid, StandardNotFound
-from autodocs.platform.fs import safe_path
+from autodocs.foundation import ManifestInvalid, StandardNotFound, safe_path
 from autodocs.platform.yaml_io import load
 
 MANIFEST = "manifest.yaml"
@@ -48,5 +47,5 @@ def load_manifest(standard_dir: Path) -> dict:
 
 
 def template_path(manifest: dict, rel: str) -> Path:
-    """템플릿은 standard_dir 아래만 허용. manifest 의 template: 값도 신뢰하지 않는다."""
+    """템플릿은 standard_dir 아래만 허용 (심링크는 목적지가 그 안일 때만). manifest 의 template: 값도 신뢰하지 않는다."""
     return safe_path(Path(manifest["_dir"]), rel)

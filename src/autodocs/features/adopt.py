@@ -11,7 +11,7 @@ from pathlib import Path
 
 from autodocs.features import init, layout
 from autodocs.features.checks.structure import _Resolver
-from autodocs.foundation import Profile
+from autodocs.foundation import Profile, norm_rel
 from autodocs.platform import fs
 
 PLAN_REL = "docs/proposals/PROP-000-adopt-standard.md"
@@ -19,7 +19,7 @@ PLAN_REL = "docs/proposals/PROP-000-adopt-standard.md"
 
 def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = True) -> tuple[init.InitResult, str]:
     snap_before = fs.scan(root)
-    res = init.run(manifest, root, profile, with_adapters=with_adapters)
+    res = init.run(manifest, root, profile, with_adapters=with_adapters, extra_files=(PLAN_REL,))
     resolver = _Resolver(layout.layer_dirs(manifest, profile))
     unclassified = sorted(f for f in snap_before.source_files
                           if resolver.layer_of_path(f) is None and not _outside_scope(manifest, f))
@@ -31,11 +31,10 @@ def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = T
 
 
 def _outside_scope(manifest: dict, rel: str) -> bool:
-    """tests/, docs/, tools/ 등 src 가 아닌 최상위 디렉터리의 파일은 계층 배치 대상이 아니다."""
-    for d in layout.top_level_dirs(manifest):
-        if d != "src" and rel.startswith(d + "/"):
-            return True
-    return False
+    """계층 배치 대상이 아닌 파일: src 외 최상위 디렉터리 + code_detection.exclude_dirs (scripts 등)."""
+    excl = {d for d in layout.top_level_dirs(manifest) if d != "src"}
+    excl |= {norm_rel(d) for d in manifest["compliance"]["code_detection"]["exclude_dirs"]}
+    return any(rel.startswith(d + "/") for d in excl)
 
 
 def _plan(manifest: dict, profile: Profile, unclassified: list[str]) -> str:

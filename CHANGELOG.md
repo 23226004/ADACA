@@ -34,3 +34,4 @@
 - C01·C03 이 README/CHANGELOG 누락을 이중 보고하던 문제
 - `%%{init}` 지시어가 앞에 오면 mermaid 블록을 못 찾던 문제
 - `has_file("/x")` 와 `read("/x")` 의 정규화 불일치
+- (재검증 2·3차) 비ASCII 프로젝트명 generic preset 거부, root 내부 심링크 거부와 반쪽 초기화, 읽기 경로 심링크 미검사, `$HOME` 잔존 변수 오탐, `--override` 무흔적, code_detection 기본값 이중화, 심링크 루프 크래시, FIFO 블록, 권한 오류 크래시, C00 중복, `AUTODOCS_STRICT=0` 오해석, 섹션 헤딩 과잉 엄격

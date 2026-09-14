@@ -132,10 +132,12 @@ def test_non_ascii_name_is_profile_error_for_package_preset(manifest, tmp_path):
 
 # --- 25. 종료 코드 ---------------------------------------------------------------
 def _std():
-    return str(standard.locate(None))
+    from tests.unit.conftest import REPO
+    return str(REPO / "standard")
 
 
-def test_cli_exit_codes(tmp_path, capsys):
+def test_cli_exit_codes(tmp_path, capsys, monkeypatch):
+    monkeypatch.delenv("AUTODOCS_STANDARD_DIR", raising=False)
     root = str(tmp_path)
     assert cli.main(["--standard", _std(), "--root", root, "audit"]) == 0                  # new, 위반이어도 audit 는 0
     assert cli.main(["--standard", _std(), "--root", root, "check"]) == 1                  # 위반
@@ -152,11 +154,16 @@ def test_cli_exit_codes(tmp_path, capsys):
 
 
 # --- 19. 읽기 1회 ------------------------------------------------------------------
-def test_each_file_read_at_most_once(manifest, profile, tmp_path):
+def test_each_file_read_at_most_once(manifest, profile, tmp_path, monkeypatch):
+    """같은 파일을 여러 check 가 읽어도 디스크 read_text 는 파일당 정확히 1회."""
+    from collections import Counter
+    from pathlib import Path
     init.run(manifest, tmp_path, profile)
     snap = fs.scan(tmp_path)
+    calls = Counter()
+    real = Path.read_text
+    monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: (calls.update([str(self)]), real(self, *a, **k))[1])
     from autodocs.features import checks
     from autodocs.foundation import Context
     checks.run_all(Context(manifest=manifest, snapshot=snap, profile=profile))
-    # 캐시 히트는 세지 않으므로 reads == 고유 파일 수. 같은 파일을 두 check 가 읽어도 디스크는 1회.
-    assert snap.reads <= len(snap.files)
+    assert calls and max(calls.values()) == 1, calls

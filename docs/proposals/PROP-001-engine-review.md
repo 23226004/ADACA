@@ -1,7 +1,7 @@
 # PROP-001 엔진 골격 v0.1.0 리뷰 결과와 수정 계획
 
 - 작성일: 2026-09-14
-- 상태: In Progress — 1·2단계 완료 (2026-09-14), 3~6단계 남음
+- 상태: In Progress — 1·2단계 완료 + 재검증 2회(회귀 R1~R8, 입력 강건화 N1~N6) 반영 (2026-09-14), 3~5단계 남음
 - 대상: `src/autodocs/` 첫 커밋 (78f5e1e)
 
 ## 요약
@@ -59,7 +59,22 @@ cli 전체(종료 코드, --json, 플래그), init 재실행, 경로 탈출·심
 
 ## 수정 계획
 
-진행: ✅ 1단계, ✅ 2단계 (+ 14·19·21·22·23 일부 선반영: YAML 오류 매핑, Snapshot 읽기 캐시, adopt 제외 목록, 경로 정규화 통일, C01/C03 중복 제거, mermaid `%%` 지시어). 테스트 14 → 54건.
+진행: ✅ 1단계, ✅ 2단계 (+ 14·19·21·22·23 일부 선반영). 테스트 14 → 81건.
+
+### 재검증 이력
+
+- **2차 (1·2단계 적용 후)**: 25건 중 13 FIXED, 5 PARTIAL, 7 DEFERRED(3~5단계, 현재도 재현). 새 회귀 8건 발견:
+  R1 비ASCII 이름이 generic preset 에서도 거부 + 기존 프로젝트 audit 이 exit 2 → placeholder 가 있을 때만 정제, check 내 ProfileInvalid 는 C00 finding.
+  R2 root 안의 정상 심링크(`CLAUDE.md -> AGENTS.md`) 거부 + 중단 시 반쪽 초기화 → 정책을 "링크 목적지가 root 안이면 유지, 밖이면 거부" 로 바꾸고 init/adopt 가 쓰기 전 모든 대상을 preflight.
+  R3 읽기는 root 밖 심링크를 따라감 → 읽기도 같은 정책. R4 standard 안 심링크 템플릿 → 같은 정책. R5 `$HOME` 잔존 변수 오탐 → 소문자 변수만.
+  R6 `--override` 흔적 없음 → `.standard/overrides.log` 기록 + `AUTODOCS_STRICT=1` 금지. R7 code_detection 코드 기본값 이중화 → 제거(누락 시 ManifestInvalid). R8 = R1.
+- **3차 (회귀 수정 후)**: R1~R8 전부 FIXED. 입력 강건화 6건 추가 발견·수정:
+  N1 심링크 루프 → RuntimeError 가 아니라 PathEscape. N2 대상 프로젝트 문제로 audit 전체가 exit 2 → check 내 AutodocsError 는 해당 check 의 finding.
+  N3 C00 중복 → 동일 finding 1회. N4 preflight 가 종류 불일치(디렉터리 자리에 파일)를 못 봄 → (rel, kind) 검증, adopt 의 PLAN_REL 포함.
+  N5 `AUTODOCS_STRICT=0` 도 금지 → "1/true/yes" 만. N6 FIFO 에서 영구 블록·권한 없는 파일/디렉터리 크래시 → scan 은 일반 파일·심링크만, 읽기 실패와 읽을 수 없는 디렉터리는 finding.
+  섹션 헤딩 매칭은 번호·강조·후행 부제/콜론을 무시하도록 정규화. overrides.log 가 심링크면 거부.
+  테스트 결함 3건 수정(공허한 읽기 1회 단언, 표준 경로 격리, C00 중복 미검출).
+- **남은 것**: #7~10·24 (C05, 4단계), #11·12 잔여 상수 (3단계), #15 manifest 스키마·#20 대소문자 무시 FS (5단계), #21 sveltekit `src/routes` (4단계 entry_dirs).
 
 | 단계 | 범위 | 핵심 변경 |
 |---|---|---|

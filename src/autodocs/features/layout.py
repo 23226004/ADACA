@@ -75,7 +75,7 @@ def layer_dirs(manifest: dict, profile: Profile | None) -> dict[str, str]:
         raise ProfileInvalid(f"알 수 없는 layout_preset: {preset!r} (가능: {', '.join(presets)})")
     raw = presets[preset]["layer_dirs"]
     name = profile.name if profile else "project"
-    subs = {"Name": _pascal(name), "package": _snake(name)}
+    subs = {"Name": lambda: _pascal(name), "package": lambda: _snake(name)}   # placeholder 가 실제 있을 때만 정제
     return {lid: norm_rel(_fill(path, subs)) for lid, path in raw.items()}
 
 
@@ -83,9 +83,10 @@ def layer_order(manifest: dict) -> list[str]:
     return [l["id"] for l in manifest["structure"]["layers"]]
 
 
-def _fill(s: str, subs: dict[str, str]) -> str:
+def _fill(s: str, subs: dict) -> str:
     for k, v in subs.items():
-        s = s.replace("{" + k + "}", v)
+        if "{" + k + "}" in s:
+            s = s.replace("{" + k + "}", v())
     if "{" in s:
         raise ManifestInvalid(f"preset 경로에 알 수 없는 placeholder: {s}")
     return s
