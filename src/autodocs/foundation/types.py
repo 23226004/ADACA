@@ -94,12 +94,14 @@ class Context:
     manifest: dict
     snapshot: Snapshot
     profile: Profile | None
+    check: dict | None = None      # 실행 중인 check 의 manifest 항목 (applies_to 등)
 
 
 @dataclass(frozen=True)
 class Report:
     state: State
     findings: tuple[Finding, ...]
+    next_action: str = ""          # manifest.compliance.states[state].next
 
     @property
     def errors(self) -> tuple[Finding, ...]:

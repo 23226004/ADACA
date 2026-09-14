@@ -44,7 +44,8 @@ def doc_required_sections(ctx: Context) -> list[Finding]:
         if not p or not spec.get("sections") or not ctx.snapshot.has_file(p) or spec.get("format") == "openapi":
             continue
         text = ctx.snapshot.read(p)
-        headings = {_norm_heading(h) for h in re.findall(r"^#{1,3}\s+(.+?)\s*$", text, re.M)}
+        depth = ctx.manifest["docs"]["section_heading_depth"]
+        headings = {_norm_heading(h) for h in re.findall(rf"^#{{1,{depth}}}\s+(.+?)\s*$", text, re.M)}
         for sec in spec["sections"]:
             if _norm_heading(sec) not in headings:
                 out.append(_f(f"{key}: 섹션 '{sec}' 없음", p, f"'## {sec}' 헤딩 추가"))
@@ -61,9 +62,15 @@ def _norm_heading(h: str) -> str:
     return _HEAD_TAIL.sub("", h).strip("*_` ").strip()
 
 
+def _applies(ctx: Context) -> list[tuple[str, dict]]:
+    """check 항목의 applies_to 가 있으면 그 문서 키만."""
+    only = (ctx.check or {}).get("applies_to")
+    return [(k, s) for k, s in ctx.manifest["docs"]["types"].items() if not only or k in only]
+
+
 def mermaid_block_present(ctx: Context) -> list[Finding]:
     out = []
-    for key, spec in ctx.manifest["docs"]["types"].items():
+    for key, spec in _applies(ctx):
         p = _concrete_path(spec)
         if not p or not ctx.snapshot.has_file(p):
             continue
@@ -82,7 +89,7 @@ def mermaid_block_present(ctx: Context) -> list[Finding]:
 def openapi_valid(ctx: Context) -> list[Finding]:
     """외부 validator 없이 최소 구조만 본다: openapi 3.x, info, paths. Snapshot 캐시를 통해 읽는다."""
     out = []
-    for key, spec in ctx.manifest["docs"]["types"].items():
+    for key, spec in _applies(ctx):
         p = _concrete_path(spec)
         if spec.get("format") != "openapi" or not p or not ctx.snapshot.has_file(p):
             continue
@@ -94,10 +101,10 @@ def openapi_valid(ctx: Context) -> list[Finding]:
         if not isinstance(doc, dict):
             out.append(_f(f"{key}: 최상위가 매핑이 아님", p))
             continue
-        want = str(spec.get("openapi_version", "3"))
+        want = str(spec["openapi_version"])
         if not str(doc.get("openapi", "")).startswith(want.split(".")[0]):
             out.append(_f(f"{key}: 'openapi: {want}' 선언 없음", p))
-        for k in ("info", "paths"):
+        for k in spec["must_have"]:
             if k not in doc:
                 out.append(_f(f"{key}: 최상위 '{k}' 없음", p))
     return out

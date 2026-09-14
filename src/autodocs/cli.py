@@ -16,7 +16,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from autodocs.features import adopt, audit, init, profile as profile_mod, report
+from autodocs.features import adopt, audit, init, layout, profile as profile_mod, report
 from autodocs.foundation import AutodocsError, safe_path
 from autodocs.platform import fs, standard
 
@@ -60,7 +60,7 @@ def _parser() -> argparse.ArgumentParser:
         s.add_argument("--language", required=True)
         s.add_argument("--api", action="store_true", dest="has_api")
         s.add_argument("--db", action="store_true", dest="has_database")
-        s.add_argument("--preset", default="generic", dest="layout_preset")
+        s.add_argument("--preset", default=None, dest="layout_preset", help="기본: 언어별 default_for (Python=python-package)")
         s.add_argument("--no-adapters", action="store_true", help="CLAUDE.md 등 포인터 파일을 만들지 않음")
         s.set_defaults(func=fn)
     return p
@@ -76,17 +76,17 @@ def _cmd_audit(args, manifest: dict) -> int:
         if os.environ.get("AUTODOCS_STRICT", "").lower() in ("1", "true", "yes"):
             print(f"error: AUTODOCS_STRICT 환경에서는 --override 를 쓸 수 없습니다 (위반 {len(rep.errors)}건)", file=sys.stderr)
             return 1
-        _log_override(args.root, override, rep)
-        print(f"OVERRIDE: 위반 {len(rep.errors)}건을 사유 '{override}' 로 통과시킴 (.standard/overrides.log 에 기록)", file=sys.stderr)
+        _log_override(args.root, manifest["compliance"]["override_log"], override, rep)
+        print(f"OVERRIDE: 위반 {len(rep.errors)}건을 사유 '{override}' 로 통과시킴 ({manifest['compliance']['override_log']} 에 기록)", file=sys.stderr)
         return 0
     return 1
 
 
-def _log_override(root: Path, reason: str, rep) -> None:
+def _log_override(root: Path, log_rel: str, reason: str, rep) -> None:
     """탈출구 사용 흔적. 저장소에 남아 리뷰·감사에서 보인다."""
     line = f"{datetime.now(timezone.utc).isoformat(timespec='seconds')} | {reason} | " \
            f"{'; '.join(f'[{f.check_id}] {f.message}' for f in rep.errors)}\n"
-    path = safe_path(root, ".standard/overrides.log")
+    path = safe_path(root, log_rel)
     if path.is_symlink():
         raise AutodocsError("overrides.log 가 심볼릭 링크입니다 — 감사 로그는 일반 파일이어야 합니다")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +98,8 @@ def _profile(args, manifest: dict):
     return profile_mod.from_dict(manifest, {
         "name": args.name, "kind": args.kind, "language": args.language,
         "has_api": args.has_api, "has_database": args.has_database,
-        "layout_preset": args.layout_preset, "standard_version": manifest["standard"]["version"],
+        "layout_preset": args.layout_preset or layout.default_preset(manifest, args.language),
+        "standard_version": manifest["standard"]["version"],
     })
 
 

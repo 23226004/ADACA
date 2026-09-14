@@ -50,9 +50,9 @@ def test_code_detection_rule_comes_from_manifest(manifest, tmp_path):
     m = copy.deepcopy(manifest)
     m["compliance"]["code_detection"] = {"source_dirs": ["lib"], "exclude_dirs": [], "min_source_files": 3}
     (tmp_path / "a.py").write_text("", encoding="utf-8")
-    assert not state.has_code(m, fs.scan(tmp_path))          # 1 < 3
+    assert not state.has_code(m, fs.scan(tmp_path, manifest["scan"]))          # 1 < 3
     (tmp_path / "lib").mkdir(); (tmp_path / "lib/b.py").write_text("", encoding="utf-8")
-    assert state.has_code(m, fs.scan(tmp_path))              # lib/ 에 있음
+    assert state.has_code(m, fs.scan(tmp_path, manifest["scan"]))              # lib/ 에 있음
 
 
 # --- 21. adopt 미분류 목록에서 tests/ 제외 --------------------------------------
@@ -101,10 +101,10 @@ def test_manifest_missing_top_key_is_engine_error(tmp_path):
 # --- 16/17/18. root · standard · preset ---------------------------------------
 def test_missing_root_is_engine_error(tmp_path):
     with pytest.raises(AutodocsError):
-        fs.scan(tmp_path / "nope")
+        fs.scan(tmp_path / "nope", {"skip_dirs": [], "source_ext": {}})
     f = tmp_path / "file.txt"; f.write_text("", encoding="utf-8")
     with pytest.raises(AutodocsError):
-        fs.scan(f)
+        fs.scan(f, {"skip_dirs": [], "source_ext": {}})
 
 
 def test_explicit_standard_does_not_fall_back(tmp_path, monkeypatch):
@@ -159,7 +159,7 @@ def test_each_file_read_at_most_once(manifest, profile, tmp_path, monkeypatch):
     from collections import Counter
     from pathlib import Path
     init.run(manifest, tmp_path, profile)
-    snap = fs.scan(tmp_path)
+    snap = fs.scan(tmp_path, manifest["scan"])
     calls = Counter()
     real = Path.read_text
     monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: (calls.update([str(self)]), real(self, *a, **k))[1])

@@ -12,11 +12,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from autodocs.foundation import ManifestInvalid, StandardNotFound, safe_path
+from autodocs.foundation import StandardNotFound, safe_path
+from autodocs.platform.manifest_schema import validate
 from autodocs.platform.yaml_io import load
 
 MANIFEST = "manifest.yaml"
-_REQUIRED_TOP = ("standard", "project_profile", "docs", "structure", "workflow", "compliance")
 
 
 def locate(explicit: Path | None = None) -> Path:
@@ -39,9 +39,7 @@ def _must(d: Path, origin: str) -> Path:
 
 def load_manifest(standard_dir: Path) -> dict:
     m = load(standard_dir / MANIFEST)
-    missing = [k for k in _REQUIRED_TOP if k not in m]
-    if missing:
-        raise ManifestInvalid(f"manifest 최상위 키 누락: {', '.join(missing)}")
+    validate(m)                               # 구조·enum·참조 무결성. 실패는 ManifestInvalid 하나로
     m["_dir"] = str(standard_dir.resolve())   # 템플릿 경로 해석용
     return m
 

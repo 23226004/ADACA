@@ -16,6 +16,11 @@
 
 ### Changed
 
+- (3~5단계) 남은 정책 상수 전부 manifest 로: `scan`(skip_dirs, source_ext→language, keep_file, index_files), preset `import_roots/aliases/entry_dirs/languages/default_for/discouraged_for`, `compliance.{states.*.next, adopt_plan, input_error_id, pointer_max_lines, override_log}`, `docs.{pointer_template, section_heading_depth}`, openapi `must_have`. `dependency_rules.allowed` 와 `checks[].applies_to` 를 실제로 읽음
+- C05 리졸버 재작성: preset `import_roots` 기준 해석 + Snapshot 에 존재하는 경로만 계층 인정 (stdlib/npm 이름 충돌 제거), ImportFrom names, TS side-effect/dynamic/type/`export * from`, 주석 제거, `.js→.ts` ESM 관례, C# alias/global/한 줄 다중 using, 파싱 실패·미지원 언어는 INFO, 파일당 목적지 계층별 1건
+- D-02 확정: `--preset` 기본값은 언어별 `default_for` (Python → python-package). Python+generic 은 경고
+- manifest 로드 시 구조·enum·참조·값 타입 검증 (`platform/manifest_schema.py`) → 오류를 ManifestInvalid 하나로
+- 대소문자만 다른 기존 파일/디렉터리는 init/adopt 에서 명시적 오류 (macOS/Windows 대비)
 - 엔진이 쓰거나 읽는 모든 상대 경로는 `norm_rel` / `fs.safe_path` 를 거친다 — 절대경로·`..`·심볼릭 링크·null byte 거부 (PROP-001 A)
 - `.standard/project.yaml` 은 init/adopt 재실행 시 절대 덮어쓰지 않음
 - "코드 있음" 판정 규칙을 manifest `compliance.code_detection` 으로 이동 (빈 src/, tests/ 만 있는 경우는 new)

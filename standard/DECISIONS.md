@@ -4,7 +4,7 @@
 
 결정이 엔진(init/audit)의 동작을 직접 바꾸는 순서대로 배열했다. D-01 ~ D-05 가 결정되면 엔진 구현을 시작할 수 있다.
 
-**현황 (2026-09-14):** D-01, D-03, D-04, D-05 확정. D-02(프리셋), D-06~D-10 은 열려 있으나 엔진 골격 구현을 막지 않는다 — 기본값으로 진행하고 확정 시 manifest 값만 바꾼다.
+**현황 (2026-09-14):** D-01, D-02, D-03, D-04, D-05 확정. D-02(프리셋), D-06~D-10 은 열려 있으나 엔진 골격 구현을 막지 않는다 — 기본값으로 진행하고 확정 시 manifest 값만 바꾼다.
 
 ---
 
@@ -23,7 +23,7 @@
 
 결정 필요: 위 권장안 채택 여부. 대소문자 규칙(C# 은 PascalCase 관례)은 D-02 프리셋에서 흡수 가능.
 
-## D-02. 언어·프레임워크별 레이아웃 프리셋
+## D-02. 언어·프레임워크별 레이아웃 프리셋 — ✅ 확정 (2026-09-14): import 해석은 preset `import_roots` 기준 + 실제 존재하는 경로만 계층으로 인정. Python 기본 preset 은 `python-package`, `generic` 은 비Python 용(Python 에 쓰면 경고). 프레임워크 진입점은 `entry_dirs` 로 선언해 L2 진입점으로 취급
 
 프레임워크가 구조를 강제하는 경우(SvelteKit `src/routes`, .NET 솔루션의 프로젝트 분리, Python 패키지 `src/{pkg}/`) 4계층을 어디에 두는지 정해야 한다. manifest 의 `structure.presets` 에 초안 4개(generic, python-package, dotnet-solution, sveltekit)를 넣었다.
 

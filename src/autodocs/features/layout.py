@@ -83,6 +83,38 @@ def layer_order(manifest: dict) -> list[str]:
     return [l["id"] for l in manifest["structure"]["layers"]]
 
 
+def preset_of(manifest: dict, profile: Profile | None) -> dict:
+    name = (profile.layout_preset if profile else "generic") or "generic"
+    presets = manifest["structure"]["presets"]
+    if name not in presets:
+        raise ProfileInvalid(f"알 수 없는 layout_preset: {name!r} (가능: {', '.join(presets)})")
+    return presets[name]
+
+
+def default_preset(manifest: dict, language: str) -> str:
+    """언어의 기본 preset (preset.default_for). 없으면 generic."""
+    for name, p in manifest["structure"]["presets"].items():
+        if language in p.get("default_for", []):
+            return name
+    return "generic"
+
+
+def preset_warning(manifest: dict, profile: Profile | None) -> str | None:
+    if profile is None:
+        return None
+    p = preset_of(manifest, profile)
+    if profile.language in p.get("discouraged_for", []):
+        return (f"layout_preset={profile.layout_preset!r} 는 {profile.language} 에 권장하지 않음 "
+                f"(권장: {default_preset(manifest, profile.language)}) — 표준 라이브러리 이름과 계층 디렉터리가 충돌할 수 있음")
+    return None
+
+
+def allowed_edges(manifest: dict) -> set[tuple[str, str]]:
+    """dependency_rules.allowed → {(from, to)}. 코드는 계층 순서를 가정하지 않는다."""
+    rules = manifest["structure"]["dependency_rules"]["allowed"]
+    return {(r["from"], t) for r in rules for t in r.get("to", [])}
+
+
 def _fill(s: str, subs: dict) -> str:
     for k, v in subs.items():
         if "{" + k + "}" in s:
@@ -100,7 +132,7 @@ def _snake(s: str) -> str:
 
 
 def _pascal(s: str) -> str:
-    out = "".join(w.capitalize() for w in re.split(r"[^A-Za-z0-9]+", s) if w)
+    out = "".join(w[0].upper() + w[1:] for w in re.split(r"[^A-Za-z0-9]+", s) if w)   # CadAddon → CadAddon, cad-addon → CadAddon
     if not out:
         raise ProfileInvalid(f"프로젝트 이름 {s!r} 에서 식별자를 만들 수 없습니다 (영문·숫자 필요)")
     return out

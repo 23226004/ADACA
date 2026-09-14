@@ -81,7 +81,7 @@ def test_project_name_cannot_traverse(manifest, tmp_path):
 def test_snapshot_read_and_has_file_agree(manifest, profile, tmp_path):
     """22번: has_file 은 True 인데 read 는 크래시하던 불일치 — 이제 둘 다 같은 정규화를 쓴다."""
     init.run(manifest, tmp_path, profile)
-    snap = fs.scan(tmp_path)
+    snap = fs.scan(tmp_path, manifest["scan"])
     assert snap.has_file("./README.md") and snap.read("README.md/").startswith("#")
     with pytest.raises(PathEscape):
         snap.has_file("/README.md")

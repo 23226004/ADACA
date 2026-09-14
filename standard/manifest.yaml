@@ -45,11 +45,35 @@ project_profile:
     standard_version: { type: string, required: true }  # pin 된 표준 버전 [D-07]
 
 # -----------------------------------------------------------------------------
+# 1b. 스캔 정책 — 엔진이 파일 시스템을 볼 때의 규칙 (코드에 기본값 없음)
+# -----------------------------------------------------------------------------
+scan:
+  skip_dirs: [.git, node_modules, __pycache__, .venv, venv, dist, build, .mypy_cache, .pytest_cache, bin, obj, .svelte-kit]
+  source_ext:                          # 확장자 → 언어. C05 는 여기 있는 언어만 해석한다
+    .py: python
+    .cs: csharp
+    .ts: typescript
+    .tsx: typescript
+    .js: typescript
+    .jsx: typescript
+    .mjs: typescript
+    .cjs: typescript
+    .svelte: typescript
+    .vue: typescript
+    .java: java                        # 해석기 미구현 → C05 가 INFO 로 보고
+    .go: go
+    .rs: rust
+  keep_file: .gitkeep                  # init 이 빈 디렉터리에 두는 파일
+  index_files: [index.ts, index.js, __init__.py]   # 디렉터리 import 해석 시 존재 확인에 쓰는 파일
+
+# -----------------------------------------------------------------------------
 # 2. 문서 (Documentation Standard)
 # -----------------------------------------------------------------------------
 docs:
   root: docs
   language: ko                        # 본문 언어. 식별자(REQ-, ADR-, 헤딩 키워드)는 영문 유지 [D-06]
+  pointer_template: templates/POINTER.md   # CLAUDE.md / AGENTS.md / GEMINI.md 의 원본
+  section_heading_depth: 3            # C06 이 섹션으로 인정하는 최대 헤딩 깊이 (###)
   id_format:
     requirement: "REQ-{n:03d}"
     proposal:    "PROP-{n:03d}"
@@ -136,6 +160,7 @@ docs:
       path: docs/api/openapi.yaml
       format: openapi
       openapi_version: "3.1.0"
+      must_have: [info, paths]        # C08 최소 구조
       template: templates/openapi.yaml
       rule: Markdown 에 Request/Response 를 중복 작성하지 않는다. OpenAPI 가 API 계약의 SSOT.
       update_triggers:
@@ -283,24 +308,44 @@ structure:
       - { from: L0, to: L1 }
       - { from: L1, to: L2 }
 
-  # 언어/프레임워크별 레이아웃 프리셋. 프레임워크가 구조를 강제하는 경우 4계층을 어떻게
-  # 매핑할지 정의한다. [D-02] — 아래는 자리만 잡은 초안.
+  # 언어/프레임워크별 레이아웃 프리셋 (D-02 확정).
+  #   layer_dirs   : 4계층의 실제 디렉터리. {package}=snake_case 이름, {Name}=PascalCase 이름
+  #   import_roots : import 문의 절대 경로를 해석하는 기준 디렉터리 ("" = 루트). 여기 기준으로 해석된 경로가
+  #                  실제로 존재할 때만 계층으로 인정한다 (stdlib 이름 충돌 방지).
+  #                  TypeScript 의 bare specifier('platform') 는 항상 패키지이므로 aliases 로만 해석한다
+  #   aliases      : 번들러 alias ($lib 등) → 경로
+  #   entry_dirs   : 프레임워크가 강제하는 진입점. L2 의 얇은 진입점으로 취급하며 adopt 목록에서 제외
+  #   languages    : 이 preset 이 맞는 언어. default_for 에 있는 언어는 이 preset 이 기본
+  #   discouraged_for : 이 언어로 이 preset 을 쓰면 init/audit 가 경고
   presets:
     generic:
-      description: 표준 구조 그대로 (src/foundation ... )
+      description: 표준 구조 그대로 (src/foundation ...). 비Python 용
       layer_dirs: { L0: src/foundation, L1: src/platform, L2: src/features, L3: src/customization }
+      import_roots: [src, ""]          # "" = 저장소 루트 (import src.features …)
+      languages: [csharp, typescript, java, go, rust, mixed]
+      discouraged_for: [python]        # `import platform` 이 stdlib 인지 src/platform 인지 구분 불가
     python-package:
-      description: "src/{package}/ 아래에 4계층 배치"
+      description: "src/{package}/ 아래에 4계층 배치. Python 기본"
       layer_dirs: { L0: "src/{package}/foundation", L1: "src/{package}/platform",
                     L2: "src/{package}/features", L3: "src/{package}/customization" }
+      import_roots: [src, ""]
+      languages: [python]
+      default_for: [python]
     dotnet-solution:
-      description: 계층별 프로젝트(.csproj) 분리
+      description: 계층별 프로젝트(.csproj) 분리. namespace 는 디렉터리명과 같다
       layer_dirs: { L0: "src/{Name}.Foundation", L1: "src/{Name}.Platform",
                     L2: "src/{Name}.Features", L3: "src/{Name}.Customization" }
+      import_roots: [src, ""]
+      languages: [csharp]
+      default_for: [csharp]
     sveltekit:
       description: "routes 는 L2 진입점, lib 아래에 계층 배치"
       layer_dirs: { L0: src/lib/foundation, L1: src/lib/platform,
                     L2: src/lib/features, L3: src/lib/customization }
+      import_roots: [src, ""]
+      aliases: { "$lib": src/lib }
+      entry_dirs: [src/routes]
+      languages: [typescript]
       notes: "src/routes 는 L2(features) 의 얇은 진입점으로 취급. 비즈니스 로직 금지."
 
   # AI 작업 순서 원칙 (Structure Standard §6)
@@ -347,11 +392,23 @@ compliance:
     source_dirs: [src]                 # 여기에 소스 파일이 하나라도 있으면 코드 있음 (빈 src/ 는 코드 없음)
     exclude_dirs: [tests, test, docs, tools, config, scripts]   # 여기 소스는 셈에 넣지 않음
     min_source_files: 1                # source_dirs 밖의 소스 파일이 이 수 이상이면 코드 있음
+  adopt_plan: docs/proposals/PROP-000-adopt-standard.md   # adopt 가 만드는 계층 배치 계획서
+  input_error_id: C00                  # 대상 프로젝트 입력 문제(잘못된 project.yaml, 읽기 실패)에 붙는 id
+  pointer_max_lines: 30                # 어댑터 포인터 파일이 이보다 길면 규칙 본문을 중복 기술하는 것으로 본다 (C11)
+  override_log: .standard/overrides.log   # `check --override` 사용 흔적
   states:
-    new:        "marker 없음 AND 코드 없음 (code_detection) → init 대상"
-    legacy:     "marker 없음 AND 코드 있음 → adopt(리팩토링) 대상"
-    partial:    "marker 있음 AND 하나 이상의 required 항목 누락 또는 규칙 위반"
-    compliant:  "marker 있음 AND 모든 required/conditional 항목 충족 AND 규칙 위반 없음"
+    new:
+      rule: "marker 없음 AND 코드 없음 (code_detection)"
+      next: "`autodocs init` 으로 표준 구조와 필수 문서를 생성하세요."
+    legacy:
+      rule: "marker 없음 AND 코드 있음"
+      next: "`autodocs adopt` 로 마커·문서를 만들고 docs/proposals/PROP-000 계획을 채우세요."
+    partial:
+      rule: "marker 있음 AND 하나 이상의 required 항목 누락 또는 규칙 위반"
+      next: "아래 error 항목을 해결하면 compliant 가 됩니다."
+    compliant:
+      rule: "marker 있음 AND 모든 required/conditional 항목 충족 AND 규칙 위반 없음"
+      next: "표준을 충족합니다. 작업 후 `autodocs check` 를 실행하세요."
   checks:                              # 각 check 는 O(n) 단일 파일 시스템 스캔 위에서 수행
     - id: C01
       name: required_docs_present
@@ -368,7 +425,9 @@ compliance:
     - id: C05
       name: dependency_direction
       severity: error
-      note: import/using 문을 계층 dir 기준으로 매핑해 상향 의존 검출
+      note: >
+        import/using 문을 preset.import_roots 기준으로 해석하고, 해석된 경로가 실제 존재할 때만
+        계층으로 인정한다. 허용 방향은 dependency_rules.allowed. 파싱 실패·미지원 언어는 INFO
     - id: C06
       name: doc_required_sections
       severity: warning

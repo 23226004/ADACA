@@ -31,10 +31,13 @@ def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = T
     subs = _substitutions(manifest, profile)
     fs.preflight(root, targets(manifest, profile, with_adapters, extra_files))   # 하나라도 문제면 아무것도 쓰지 않는다
 
+    keep = manifest["scan"]["keep_file"]
+    if (w := layout.preset_warning(manifest, profile)):
+        res.warnings.append(w)
     for d in layout.required_dirs(manifest):
-        _track(res, d + "/", fs.ensure_dir(root, d))
+        _track(res, d + "/", fs.ensure_dir(root, d, keep))
     for d in layout.layer_dirs(manifest, profile).values():
-        _track(res, d + "/", fs.ensure_dir(root, d))
+        _track(res, d + "/", fs.ensure_dir(root, d, keep))
     for key, spec in layout.required_docs(manifest, profile).items():
         rel = layout.doc_path(spec)
         if rel is None:
@@ -44,7 +47,7 @@ def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = T
     for spec in layout.optional_docs(manifest).values():   # 선택 문서는 디렉터리만
         parent = Path(spec["path"]).parent.as_posix()
         if parent not in (".", ""):
-            _track(res, f"{parent}/", fs.ensure_dir(root, parent))
+            _track(res, f"{parent}/", fs.ensure_dir(root, parent, keep))
     if with_adapters:
         for ad in manifest.get("adapters", {}).values():
             p = ad.get("pointer_file")
@@ -92,7 +95,7 @@ def _render(manifest: dict, spec: dict, subs: dict[str, str], res: InitResult) -
 
 
 def _pointer(manifest: dict, subs: dict[str, str]) -> str:
-    tpl = standard.template_path(manifest, "templates/POINTER.md")
+    tpl = standard.template_path(manifest, manifest["docs"]["pointer_template"])
     if tpl.is_file():
         return Template(tpl.read_text(encoding="utf-8")).safe_substitute(subs)
     return (f"# {subs['project_name']}\n\n"

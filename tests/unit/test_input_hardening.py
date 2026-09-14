@@ -25,7 +25,7 @@ def test_symlink_loop_is_path_escape_not_runtime_error(manifest, tmp_path):
 
 def test_fifo_is_not_a_file(manifest, tmp_path):
     os.mkfifo(tmp_path / "README.md")
-    snap = fs.scan(tmp_path)
+    snap = fs.scan(tmp_path, manifest["scan"])
     assert not snap.has_file("README.md")               # read 로 블록되지 않는다
     assert audit.run(manifest, tmp_path).state == State.NEW
 
@@ -94,3 +94,12 @@ def test_overrides_log_symlink_is_rejected(tmp_path, monkeypatch):
     (tmp_path / ".standard/overrides.log").symlink_to("../README.md")
     assert cli.main(["--standard", str(REPO / "standard"), "--root", str(tmp_path), "check", "--override", "r"]) == 2
     assert not (tmp_path / "README.md").exists()
+
+
+def test_case_only_different_file_is_rejected(manifest, tmp_path):
+    """#20: 대소문자 무시 FS 에서 Readme.md 가 있으면 init 은 '이미 있음' 으로 넘어가고 audit 은 '없음' 이라던 모순 → 명시적 오류."""
+    (tmp_path / "Readme.md").write_text("x", encoding="utf-8")
+    with pytest.raises(AutodocsError) as e:
+        init.run(manifest, tmp_path, _prof(manifest))
+    assert "Readme.md" in str(e.value)
+    assert not (tmp_path / "docs").exists()   # preflight 에서 잡혀 아무것도 쓰지 않음

@@ -10,9 +10,9 @@
 
 ## 현재 상태
 
-- 단계: 개발 (엔진 골격 + 리뷰 1·2단계 수정 완료, 어댑터 미착수)
+- 단계: 개발 (엔진 v0.1.0 — PROP-001 리뷰 1~5단계 전부 반영, 어댑터 미착수)
 - 최신 버전: 0.1.0 (미배포)
-- 표준 버전: 0.1.0 — 결정 D-01·03·04·05 확정, D-02·06~10 열림 (`standard/DECISIONS.md`)
+- 표준 버전: 0.1.0 — 결정 D-01~05 확정, D-06~10 열림 (`standard/DECISIONS.md`)
 
 ## 기술 스택
 
@@ -23,8 +23,8 @@
 
 계층 구조 (상세: `docs/architecture/architecture.md`)
 
-- L0 foundation: `src/autodocs/foundation/` — 타입(계약)·예외. 표준 라이브러리만.
-- L1 platform: `src/autodocs/platform/` — 파일 시스템 스캔, YAML, 표준 위치 탐색, import 추출
+- L0 foundation: `src/autodocs/foundation/` — 타입(계약)·예외·경로 정책(norm_rel/safe_path). 표준 라이브러리만.
+- L1 platform: `src/autodocs/platform/` — 파일 시스템 스캔, YAML, 표준 위치 탐색·manifest 스키마 검증, import 추출
 - L2 features: `src/autodocs/features/` — layout·profile·state·checks·init·adopt·audit·report
 - L3 customization: `src/autodocs/customization/` — 비어 있음 (변형은 manifest 데이터로 표현)
 - 진입점: `src/autodocs/cli.py` — argparse 디스패처, 판단 로직 없음
@@ -48,7 +48,7 @@
 | 마커 | `.standard/project.yaml`. 프로젝트 프로필 + pin 된 표준 버전. 있으면 표준 적용 프로젝트 |
 | 상태 | new(마커·코드 없음) / legacy(마커 없음, 코드 있음) / partial(마커 있음, 위반) / compliant |
 | check | manifest `compliance.checks` 의 한 항목 (C01~C11). Snapshot 을 받아 Finding 목록을 돌려주는 순수 함수 |
-| preset | 언어·프레임워크별 계층 디렉터리 배치 (`structure.presets`) |
+| preset | 언어·프레임워크별 계층 디렉터리 배치와 import 해석 규칙 (`structure.presets`: layer_dirs, import_roots, aliases, entry_dirs) |
 | 포인터 파일 | CLAUDE.md / AGENTS.md / GEMINI.md. 규칙 본문 없이 project-context 를 가리키기만 함 |
 | adopt | 기존 프로젝트에 마커·문서·계층 디렉터리를 만들고 계층 배치 계획서를 내는 명령 |
 
@@ -56,9 +56,8 @@
 
 | 항목 | 상태 | 비고 |
 |---|---|---|
-| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 81개 |
-| PROP-001 리뷰 수정 1·2단계 + 재검증 2회 (회귀 R1~R8, 입력 강건화 N1~N6) | 완료 | `docs/proposals/PROP-001-engine-review.md` |
-| PROP-001 3~6단계 (manifest 정책 이동, C05 재작성, 입력 검증) | 다음 | bkit 참조: `ref/bkit-reference-notes.md` |
+| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 108개 |
+| PROP-001 리뷰 수정 1~5단계 + 재검증 4회 | 완료 | `docs/proposals/PROP-001-engine-review.md` |
 | 문서 템플릿 11종 | 완료 | `standard/templates/` |
 | Claude Code 플러그인 (commands/skill/hook) | 다음 | manifest `adapters.claude` |
 | Codex / Gemini 어댑터 | 예정 | Claude 완성 후 |

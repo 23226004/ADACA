@@ -9,19 +9,16 @@ from pathlib import Path
 
 from autodocs.foundation import AutodocsError, Snapshot, safe_path
 
-SOURCE_EXT = {".py", ".cs", ".ts", ".js", ".svelte", ".java", ".go", ".rs"}
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build",
-             ".mypy_cache", ".pytest_cache", "bin", "obj", ".svelte-kit"}
-
-
 def require_dir(path: Path, what: str = "경로") -> Path:
     if not path.is_dir():
         raise AutodocsError(f"{what}가 디렉터리가 아니거나 존재하지 않습니다: {path}")
     return path.resolve()
 
 
-def scan(root: Path, *, skip_dirs: set[str] = SKIP_DIRS, source_ext: set[str] = SOURCE_EXT) -> Snapshot:
-    """os.walk 한 번으로 Snapshot 생성. 이후 어떤 check 도 디스크를 다시 걷지 않는다. 심링크는 따라가지 않는다."""
+def scan(root: Path, policy: dict) -> Snapshot:
+    """os.walk 한 번으로 Snapshot 생성. policy = manifest["scan"] (skip_dirs, source_ext). 심링크는 따라가지 않는다."""
+    skip_dirs = set(policy["skip_dirs"])
+    source_ext = set(policy["source_ext"])
     root = require_dir(root, "프로젝트 루트")
     files: set[str] = set()
     dirs: set[str] = set()
@@ -43,6 +40,14 @@ def scan(root: Path, *, skip_dirs: set[str] = SKIP_DIRS, source_ext: set[str] = 
     return Snapshot(root=root, files=frozenset(files), dirs=frozenset(dirs), source_files=source, errors=tuple(errors))
 
 
+def _case_clash(path: Path) -> str | None:
+    """대소문자 무시 FS(macOS/Windows) 대비: 이름만 다른 형제가 있으면 그 이름. (Readme.md vs README.md)"""
+    if not path.parent.is_dir():
+        return None
+    low = path.name.lower()
+    return next((n for n in os.listdir(path.parent) if n.lower() == low and n != path.name), None)
+
+
 def write_text(root: Path, rel: str, content: str) -> bool:
     """root/rel 에 파일 생성. 이미 있으면(심링크 포함) 건드리지 않고 False. 그 자리에 디렉터리가 있으면 오류."""
     path = safe_path(root, rel)
@@ -50,20 +55,25 @@ def write_text(root: Path, rel: str, content: str) -> bool:
         raise AutodocsError(f"파일 자리에 디렉터리가 있습니다: {rel}")
     if path.exists() or path.is_symlink():   # dangling 이라도 root 안 링크면 건드리지 않는다
         return False
+    if (clash := _case_clash(path)):
+        raise AutodocsError(f"대소문자만 다른 파일이 이미 있습니다: {clash} (표준 이름: {path.name})")
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "x", encoding="utf-8") as f:   # 'x': 경쟁 상태에서도 덮어쓰지 않음
         f.write(content)
     return True
 
 
-def ensure_dir(root: Path, rel: str) -> bool:
+def ensure_dir(root: Path, rel: str, keep_file: str | None = None) -> bool:
     path = safe_path(root, rel)
     if path.is_dir() or path.is_symlink():
         return False
     if path.exists():
         raise AutodocsError(f"디렉터리 자리에 파일이 있습니다: {rel}")
+    if (clash := _case_clash(path)):
+        raise AutodocsError(f"대소문자만 다른 디렉터리가 이미 있습니다: {clash} (표준 이름: {path.name})")
     path.mkdir(parents=True, exist_ok=True)
-    (path / ".gitkeep").touch()
+    if keep_file:
+        (path / keep_file).touch()
     return True
 
 
@@ -78,3 +88,5 @@ def preflight(root: Path, targets: list[tuple[str, str]]) -> None:
             raise AutodocsError(f"디렉터리 자리에 파일이 있습니다: {rel}")
         if kind == "file" and p.is_dir():
             raise AutodocsError(f"파일 자리에 디렉터리가 있습니다: {rel}")
+        if not p.exists() and (clash := _case_clash(p)):
+            raise AutodocsError(f"대소문자만 다른 항목이 이미 있습니다: {clash} (표준 이름: {p.name})")

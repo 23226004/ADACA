@@ -1,7 +1,7 @@
 # PROP-001 엔진 골격 v0.1.0 리뷰 결과와 수정 계획
 
 - 작성일: 2026-09-14
-- 상태: In Progress — 1·2단계 완료 + 재검증 2회(회귀 R1~R8, 입력 강건화 N1~N6) 반영 (2026-09-14), 3~5단계 남음
+- 상태: Done — 1~5단계 완료, 재검증 4회 (2026-09-14). 잔여는 아래 '남은 것'
 - 대상: `src/autodocs/` 첫 커밋 (78f5e1e)
 
 ## 요약
@@ -59,7 +59,7 @@ cli 전체(종료 코드, --json, 플래그), init 재실행, 경로 탈출·심
 
 ## 수정 계획
 
-진행: ✅ 1단계, ✅ 2단계 (+ 14·19·21·22·23 일부 선반영). 테스트 14 → 81건.
+진행: ✅ 1~5단계 전부. 테스트 14 → 108건.
 
 ### 재검증 이력
 
@@ -74,7 +74,14 @@ cli 전체(종료 코드, --json, 플래그), init 재실행, 경로 탈출·심
   N5 `AUTODOCS_STRICT=0` 도 금지 → "1/true/yes" 만. N6 FIFO 에서 영구 블록·권한 없는 파일/디렉터리 크래시 → scan 은 일반 파일·심링크만, 읽기 실패와 읽을 수 없는 디렉터리는 finding.
   섹션 헤딩 매칭은 번호·강조·후행 부제/콜론을 무시하도록 정규화. overrides.log 가 심링크면 거부.
   테스트 결함 3건 수정(공허한 읽기 1회 단언, 표준 경로 격리, C00 중복 미검출).
-- **남은 것**: #7~10·24 (C05, 4단계), #11·12 잔여 상수 (3단계), #15 manifest 스키마·#20 대소문자 무시 FS (5단계), #21 sveltekit `src/routes` (4단계 entry_dirs).
+- **4차 (3~5단계 적용 후)**: DEFERRED 였던 #7·10·11·21·24 FIXED, #8·9·12·15·20 PARTIAL → 잔여를 같은 회차에 수정:
+  A1 루트 기준 절대 import(`import src.demo.features`) 미해석 → preset `import_roots` 에 `""`(루트) 추가.
+  A2 ESM `'../a.js'` → 실제 `a.ts` 매핑. A3 `.tsx/.jsx/.mjs/.cjs/.vue` 를 `scan.source_ext` 에 추가하고 해석 확장자를 거기서 유도.
+  A4 generic+TypeScript 에서 npm bare specifier(`'platform'`) 오탐 → TS 의 bare specifier 는 alias 또는 `import_root/` 접두 경로형만 해석.
+  C# 한 줄 다중 `using`·인라인 namespace 블록 미검출 → 줄 앵커 제거. `_pascal` 이 `CadAddon → Cadaddon` 으로 내부 대문자를 파괴 → 보존.
+  validate() 통과 후 크래시(top_level null, pointer_max_lines 문자열, layer_dirs 정수, version float, default 타입, sections 문자열…) → 값 타입 검사 추가.
+  남은 하드코딩(`_EXTS`, adopt `"src"`, POINTER 템플릿 경로, overrides.log 경로, openapi 최소 구조, 헤딩 깊이) 전부 manifest 로 이동.
+- **남은 것 (설계상 수용)**: `importlib.import_module("…")` 같은 동적 import 는 정적 분석 한계로 미검출. 파일당 목적지 계층별 1건만 보고(첫 import). Linux 에서도 대소문자만 다른 파일을 거부(표준 이름 강제로 간주).
 
 | 단계 | 범위 | 핵심 변경 |
 |---|---|---|

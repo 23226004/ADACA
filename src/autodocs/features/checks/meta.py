@@ -4,7 +4,6 @@ from __future__ import annotations
 from autodocs.foundation import Context, Finding, Severity
 
 _H = "meta"
-POINTER_MAX_LINES = 30   # 이보다 길면 규칙 본문을 중복 기술하고 있다고 본다
 
 
 def _f(msg: str, path: str | None = None, hint: str | None = None) -> Finding:
@@ -23,6 +22,7 @@ def standard_version_pinned(ctx: Context) -> list[Finding]:
 
 def adapter_files_are_pointers(ctx: Context) -> list[Finding]:
     ctx_path = ctx.manifest["docs"]["types"]["project_context"]["path"]
+    max_lines = ctx.manifest["compliance"]["pointer_max_lines"]
     out = []
     for name, ad in ctx.manifest.get("adapters", {}).items():
         p = ad.get("pointer_file")
@@ -31,6 +31,6 @@ def adapter_files_are_pointers(ctx: Context) -> list[Finding]:
         text = ctx.snapshot.read(p)
         if ctx_path not in text:
             out.append(_f(f"{p} 가 {ctx_path} 를 가리키지 않음", p, f"'{ctx_path} 를 먼저 읽어라' 한 줄 추가"))
-        if text.count("\n") > POINTER_MAX_LINES:
-            out.append(_f(f"{p} 가 {POINTER_MAX_LINES}줄을 넘음 — 규칙 본문은 project-context 에만", p))
+        if text.count("\n") > max_lines:
+            out.append(_f(f"{p} 가 {max_lines}줄을 넘음 — 규칙 본문은 project-context 에만", p))
     return out

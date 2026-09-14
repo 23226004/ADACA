@@ -10,30 +10,32 @@ from __future__ import annotations
 from pathlib import Path
 
 from autodocs.features import init, layout
-from autodocs.features.checks.structure import _Resolver
+from autodocs.features.checks.structure import Resolver
 from autodocs.foundation import Profile, norm_rel
 from autodocs.platform import fs
 
-PLAN_REL = "docs/proposals/PROP-000-adopt-standard.md"
-
-
 def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = True) -> tuple[init.InitResult, str]:
-    snap_before = fs.scan(root)
-    res = init.run(manifest, root, profile, with_adapters=with_adapters, extra_files=(PLAN_REL,))
-    resolver = _Resolver(layout.layer_dirs(manifest, profile))
+    plan_rel = norm_rel(manifest["compliance"]["adopt_plan"])
+    snap_before = fs.scan(root, manifest["scan"])
+    res = init.run(manifest, root, profile, with_adapters=with_adapters, extra_files=(plan_rel,))
+    preset = layout.preset_of(manifest, profile)
+    resolver = Resolver(snap_before, layout.layer_dirs(manifest, profile), preset, manifest["scan"])
     unclassified = sorted(f for f in snap_before.source_files
-                          if resolver.layer_of_path(f) is None and not _outside_scope(manifest, f))
-    if fs.write_text(root, PLAN_REL, _plan(manifest, profile, unclassified)):
-        res.created.append(PLAN_REL)
+                          if resolver.layer_of_path(f) is None and not _outside_scope(manifest, preset, f))
+    if fs.write_text(root, plan_rel, _plan(manifest, profile, unclassified)):
+        res.created.append(plan_rel)
     else:
-        res.skipped.append(PLAN_REL)
-    return res, PLAN_REL
+        res.skipped.append(plan_rel)
+    return res, plan_rel
 
 
-def _outside_scope(manifest: dict, rel: str) -> bool:
-    """계층 배치 대상이 아닌 파일: src 외 최상위 디렉터리 + code_detection.exclude_dirs (scripts 등)."""
-    excl = {d for d in layout.top_level_dirs(manifest) if d != "src"}
-    excl |= {norm_rel(d) for d in manifest["compliance"]["code_detection"]["exclude_dirs"]}
+def _outside_scope(manifest: dict, preset: dict, rel: str) -> bool:
+    """계층 배치 대상이 아닌 파일: src 외 최상위 디렉터리 + code_detection.exclude_dirs + preset.entry_dirs (src/routes 등)."""
+    cd = manifest["compliance"]["code_detection"]
+    src_dirs = {norm_rel(d) for d in cd["source_dirs"]}
+    excl = {d for d in layout.top_level_dirs(manifest) if d not in src_dirs}
+    excl |= {norm_rel(d) for d in cd["exclude_dirs"]}
+    excl |= {norm_rel(d) for d in preset.get("entry_dirs", [])}
     return any(rel.startswith(d + "/") for d in excl)
 
 
@@ -60,7 +62,7 @@ def _plan(manifest: dict, profile: Profile, unclassified: list[str]) -> str:
 ### 미분류 소스 파일 ({len(unclassified)}개)
 
 각 파일의 목적지 계층과 이유를 채운다. 판단 원칙: 가능하면 L2(features), 프로젝트 고유 설정은 L3, 외부 시스템 접근은 L1, 공통 기반만 L0.
-tests/, docs/, tools/ 아래 파일은 계층 배치 대상이 아니므로 목록에 없다.
+tests/, docs/, tools/ 와 프레임워크 진입점(entry_dirs) 아래 파일은 계층 배치 대상이 아니므로 목록에 없다.
 
 | 파일 | 목적지 계층 | 이유 |
 |---|---|---|

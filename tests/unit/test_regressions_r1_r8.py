@@ -62,7 +62,7 @@ def test_read_through_outside_symlink_is_rejected(manifest, tmp_path):
     init.run(manifest, tmp_path, _prof(manifest))
     (tmp_path / "README.md").unlink()
     (tmp_path / "README.md").symlink_to("/etc/hostname")
-    snap = fs.scan(tmp_path)
+    snap = fs.scan(tmp_path, manifest["scan"])
     assert snap.has_file("README.md")
     with pytest.raises(PathEscape):
         snap.read("README.md")
