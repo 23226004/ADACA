@@ -456,7 +456,11 @@ adapters:
   claude:
     kind: claude-code-plugin
     pointer_file: CLAUDE.md
-    provides: [commands: [std-init, std-adopt, std-audit, std-check], skills: [standard-workflow], hooks: [pre-pr-check]]
+    plugin_root: "."                   # 저장소 루트가 플러그인 루트 (.claude-plugin/, commands/, skills/, hooks/, bin/)
+    provides:
+      - commands: [std-init, std-adopt, std-audit, std-check]
+      - skills: [standard-workflow]
+      - hooks: [session-start, post-write-docs, stop-check]   # SessionStart 주입 · docs/*.md 조언 · Stop 1회 알림
   codex:
     kind: agents-md+skill
     pointer_file: AGENTS.md

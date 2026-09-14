@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""플러그인 런처. 설치 없이 저장소(플러그인) 루트의 src/ 와 standard/ 를 그대로 쓴다.
+
+  "${CLAUDE_PLUGIN_ROOT}/bin/autodocs" audit --root <project>
+pip 로 설치된 autodocs 가 있으면 그것을 쓰지 않고 항상 이 저장소의 엔진과 표준을 쓴다 (버전 불일치 방지).
+"""
+import os
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+os.environ.setdefault("AUTODOCS_STANDARD_DIR", str(ROOT / "standard"))
+
+from autodocs.cli import main  # noqa: E402
+
+sys.exit(main())

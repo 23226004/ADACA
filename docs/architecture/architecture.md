@@ -52,6 +52,9 @@ flowchart LR
 | `features/audit.py` | L2 | scan → profile → checks → judge |
 | `features/report.py` | L2 | text / json 렌더링 |
 | `cli.py` | 진입점 | argparse. 판단 없음 |
+| `bin/autodocs` | 어댑터 | 설치 없는 런처. 저장소의 src/·standard/ 를 고정 사용 |
+| `hooks/_common.py` + 3 스크립트 | 어댑터 | Claude Code 훅. in-process 로 audit 호출, fail-open, 출력 상한 |
+| `commands/`, `skills/` | 어댑터 | 모델에게 주는 절차 텍스트. 규칙 본문 없이 manifest·project-context 를 가리킴 |
 
 ## 데이터 흐름
 

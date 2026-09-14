@@ -1,0 +1,46 @@
+{
+  "description": "autodocs — timeout 은 초 단위. `if` 는 permission rule 하나만(| 대체 불가)이며 툴 이벤트에서만 평가되므로 Write 용·Edit 용을 따로 등록한다. Stop 에는 matcher 를 두지 않는다. 계약은 tests/contract/test_hooks_json.py 가 고정한다.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/post_write.py\"",
+            "timeout": 5,
+            "if": "Write(docs/**/*.md)"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/post_write.py\"",
+            "timeout": 5,
+            "if": "Edit(docs/**/*.md)"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -10,7 +10,7 @@
 
 ## 현재 상태
 
-- 단계: 개발 (엔진 v0.1.0 — PROP-001 리뷰 1~5단계 전부 반영, 어댑터 미착수)
+- 단계: 개발 (엔진 v0.1.0 안정화 완료, Claude Code 플러그인 어댑터 v0.1.0 — 실제 Claude Code 세션 검증 전)
 - 최신 버전: 0.1.0 (미배포)
 - 표준 버전: 0.1.0 — 결정 D-01~05 확정, D-06~10 열림 (`standard/DECISIONS.md`)
 
@@ -28,6 +28,7 @@
 - L2 features: `src/autodocs/features/` — layout·profile·state·checks·init·adopt·audit·report
 - L3 customization: `src/autodocs/customization/` — 비어 있음 (변형은 manifest 데이터로 표현)
 - 진입점: `src/autodocs/cli.py` — argparse 디스패처, 판단 로직 없음
+- 어댑터(Claude): `.claude-plugin/plugin.json`(최소 키) · `bin/autodocs`(설치 없는 런처) · `commands/std-*.md` 4개 · `skills/standard-workflow/SKILL.md` · `hooks/{session_start,post_write,stop}.py` + `hooks.json`. 규칙 본문은 담지 않고 manifest 와 project-context 를 가리킨다
 
 의존성은 위→아래(L3 → L0)만 허용. `autodocs check` 의 C05 가 이 저장소 자신에게도 적용된다.
 
@@ -35,6 +36,7 @@
 
 - **manifest 가 규칙의 원천이다.** 검사 항목·문서 종류·계층 이름을 코드에 하드코딩하지 않는다. 새 check 는 manifest 에 선언 + `features/checks/` 레지스트리에 등록, 둘 중 하나만 하면 테스트가 실패한다.
 - 파일 시스템은 명령당 **한 번만** 걷는다 (`platform.fs.scan` → `Snapshot`). check 는 Snapshot 만 본다.
+- 훅은 **Guide, don't block**: 차단은 `check`(PR 게이트)에서만. 훅은 fail-open(어떤 예외도 exit 0), 출력 6,000자 상한, Stop 알림은 세션당 1회. hooks.json 의 timeout 은 초 단위이며 `tests/contract/test_hooks_json.py` 가 계약을 고정한다.
 - `init` 은 기존 파일·마커를 절대 덮어쓰지 않는다. 엔진이 읽거나 쓰는 모든 경로는 `foundation.safe_path` 를 거친다 (manifest 값도 신뢰하지 않음). 심링크는 목적지가 root 안일 때만 허용.
 - **대상 프로젝트의 입력은 엔진을 죽이지 않는다.** 잘못된 project.yaml, 권한 없는 파일, 심링크 루프, FIFO 는 finding 이 되지 exit 2 가 되지 않는다. exit 2 는 manifest·CLI·표준 위치 같은 엔진 쪽 문제에만.
 - 엔진은 판단하지 않는다. "이 파일이 어느 계층인가" 같은 판단은 계획서(PROP-000)로 AI/사람에게 넘긴다.
@@ -56,10 +58,10 @@
 
 | 항목 | 상태 | 비고 |
 |---|---|---|
-| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 108개 |
+| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 테스트 131개 (unit 110 + contract 21) |
 | PROP-001 리뷰 수정 1~5단계 + 재검증 4회 | 완료 | `docs/proposals/PROP-001-engine-review.md` |
 | 문서 템플릿 11종 | 완료 | `standard/templates/` |
-| Claude Code 플러그인 (commands/skill/hook) | 다음 | manifest `adapters.claude` |
+| Claude Code 플러그인 (commands 4·skill 1·hooks 3) | 완료 (실세션 미검증) | `tests/contract/` 21건. `claude --plugin-dir` 로 실제 세션 검증 필요 |
 | Codex / Gemini 어댑터 | 예정 | Claude 완성 후 |
 | 표준 결정 D-02, D-06~D-10 | 열림 | 기본값으로 진행 중 |
 

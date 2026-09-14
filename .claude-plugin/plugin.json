@@ -1,0 +1,5 @@
+{
+  "name": "autodocs",
+  "version": "0.1.0",
+  "description": "AI Harness Engineering Standard — 신규 프로젝트는 표준대로 생성하고(init), 기존 프로젝트는 표준으로 옮기는 계획을 만들며(adopt), 작업 전후에 준수 여부를 판정한다(audit/check)."
+}
