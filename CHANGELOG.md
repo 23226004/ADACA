@@ -16,4 +16,21 @@
 
 ### Changed
 
+- 엔진이 쓰거나 읽는 모든 상대 경로는 `norm_rel` / `fs.safe_path` 를 거친다 — 절대경로·`..`·심볼릭 링크·null byte 거부 (PROP-001 A)
+- `.standard/project.yaml` 은 init/adopt 재실행 시 절대 덮어쓰지 않음
+- "코드 있음" 판정 규칙을 manifest `compliance.code_detection` 으로 이동 (빈 src/, tests/ 만 있는 경우는 new)
+- `--standard` / `AUTODOCS_STANDARD_DIR` 가 틀리면 폴백 없이 오류
+- `check --override <사유>`: 위반이 있어도 exit 0, 사유를 출력에 남김 (긴급 탈출구)
+- 종료 코드 확정: 0 통과 · 1 위반 · 2 엔진/사용 오류 (모든 예외 포함)
+- `Snapshot.read` 캐시 — 파일당 디스크 읽기 1회
+- 출력 아이콘을 ASCII 로 (cp949 콘솔 대응)
+
 ### Fixed
+
+- `adopt --no-adapters` 가 무시되던 문제
+- 잘못된 `project.yaml` / `openapi.yaml` (타입·YAML 문법) 이 트레이스백 대신 finding(C00/C08) 으로 보고됨
+- 알 수 없는 `layout_preset`, 비ASCII 프로젝트 이름이 조용히 폴백되던 문제 → ProfileInvalid
+- `adopt` 계획서의 미분류 목록에서 tests/·docs/·tools/ 제외
+- C01·C03 이 README/CHANGELOG 누락을 이중 보고하던 문제
+- `%%{init}` 지시어가 앞에 오면 mermaid 블록을 못 찾던 문제
+- `has_file("/x")` 와 `read("/x")` 의 정규화 불일치

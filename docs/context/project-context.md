@@ -10,7 +10,7 @@
 
 ## 현재 상태
 
-- 단계: 개발 (엔진 골격 완성, 어댑터 미착수)
+- 단계: 개발 (엔진 골격 + 리뷰 1·2단계 수정 완료, 어댑터 미착수)
 - 최신 버전: 0.1.0 (미배포)
 - 표준 버전: 0.1.0 — 결정 D-01·03·04·05 확정, D-02·06~10 열림 (`standard/DECISIONS.md`)
 
@@ -35,7 +35,7 @@
 
 - **manifest 가 규칙의 원천이다.** 검사 항목·문서 종류·계층 이름을 코드에 하드코딩하지 않는다. 새 check 는 manifest 에 선언 + `features/checks/` 레지스트리에 등록, 둘 중 하나만 하면 테스트가 실패한다.
 - 파일 시스템은 명령당 **한 번만** 걷는다 (`platform.fs.scan` → `Snapshot`). check 는 Snapshot 만 본다.
-- `init` 은 기존 파일을 절대 덮어쓰지 않는다.
+- `init` 은 기존 파일·마커를 절대 덮어쓰지 않는다. 엔진이 만드는 모든 경로는 `fs.safe_path` 를 거친다 (manifest 값도 신뢰하지 않음).
 - 엔진은 판단하지 않는다. "이 파일이 어느 계층인가" 같은 판단은 계획서(PROP-000)로 AI/사람에게 넘긴다.
 - 코드와 문서는 같은 PR 에서 함께 변경한다. 작업 종료 전 `PYTHONPATH=src python -m autodocs check` 와 `pytest` 통과.
 
@@ -55,7 +55,9 @@
 
 | 항목 | 상태 | 비고 |
 |---|---|---|
-| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 14개 |
+| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 단위 테스트 54개 |
+| PROP-001 리뷰 수정 1·2단계 (경로 가드, 비파괴, 종료코드) | 완료 | `docs/proposals/PROP-001-engine-review.md` |
+| PROP-001 3~6단계 (manifest 정책 이동, C05 재작성, 입력 검증) | 다음 | bkit 참조: `ref/bkit-reference-notes.md` |
 | 문서 템플릿 11종 | 완료 | `standard/templates/` |
 | Claude Code 플러그인 (commands/skill/hook) | 다음 | manifest `adapters.claude` |
 | Codex / Gemini 어댑터 | 예정 | Claude 완성 후 |

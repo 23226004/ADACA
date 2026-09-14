@@ -10,7 +10,8 @@ AI 코딩 도구(Claude, Codex, Gemini)로 작업하는 모든 프로젝트가 *
 - `autodocs audit` — 프로젝트를 한 번 스캔해 `new / legacy / partial / compliant` 상태와 위반 목록을 출력
 - `autodocs init` — 표준 디렉터리·계층·필수 문서·AI 포인터 파일(CLAUDE.md 등) 생성. 기존 파일은 절대 덮어쓰지 않음
 - `autodocs adopt` — 기존 프로젝트에 마커·문서를 만들고, 소스 파일의 계층 배치 계획(PROP-000)을 생성
-- `autodocs check` — `audit` 와 같으나 error 가 있으면 exit 1 (PR 게이트·hook 용)
+- `autodocs check` — `audit` 와 같으나 error 가 있으면 exit 1 (PR 게이트·hook 용). `--override <사유>` 는 긴급 탈출구
+- 종료 코드: 0 통과 · 1 위반 · 2 엔진/사용 오류
 - 검사 항목(C01~C11)과 문서 종류·갱신 규칙은 코드가 아니라 manifest 에 선언되어 있다
 
 ## 기술 스택

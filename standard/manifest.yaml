@@ -343,9 +343,13 @@ workflow:
 compliance:
   marker:
     path: .standard/project.yaml       # project_profile 값 + standard_version 저장 (D-05 확정)
+  code_detection:                      # "코드 있음" 판정 규칙 (new vs legacy)
+    source_dirs: [src]                 # 여기에 소스 파일이 하나라도 있으면 코드 있음 (빈 src/ 는 코드 없음)
+    exclude_dirs: [tests, test, docs, tools, config, scripts]   # 여기 소스는 셈에 넣지 않음
+    min_source_files: 1                # source_dirs 밖의 소스 파일이 이 수 이상이면 코드 있음
   states:
-    new:        "marker 없음 AND src/ 없음 (또는 비어 있음) → init 대상"
-    legacy:     "marker 없음 AND src/ 또는 코드 존재 → adopt(리팩토링) 대상"
+    new:        "marker 없음 AND 코드 없음 (code_detection) → init 대상"
+    legacy:     "marker 없음 AND 코드 있음 → adopt(리팩토링) 대상"
     partial:    "marker 있음 AND 하나 이상의 required 항목 누락 또는 규칙 위반"
     compliant:  "marker 있음 AND 모든 required/conditional 항목 충족 AND 규칙 위반 없음"
   checks:                              # 각 check 는 O(n) 단일 파일 시스템 스캔 위에서 수행

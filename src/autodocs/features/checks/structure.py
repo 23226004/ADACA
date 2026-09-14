@@ -15,8 +15,11 @@ def _f(msg: str, path: str | None = None, hint: str | None = None) -> Finding:
 
 
 def required_dirs_present(ctx: Context) -> list[Finding]:
+    """디렉터리 + 문서 타입이 아닌 필수 파일. 문서 타입 파일(README 등)은 C01 이 보고하므로 중복 제외."""
+    doc_paths = {layout.doc_path(s) for s in ctx.manifest["docs"]["types"].values()}
     out = [_f(f"필수 디렉터리 없음: {d}/", d) for d in layout.required_dirs(ctx.manifest) if not ctx.snapshot.has_dir(d)]
-    out += [_f(f"필수 파일 없음: {p}", p) for p in layout.required_top_files(ctx.manifest) if not ctx.snapshot.has_file(p)]
+    out += [_f(f"필수 파일 없음: {p}", p) for p in layout.required_top_files(ctx.manifest)
+            if p not in doc_paths and not ctx.snapshot.has_file(p)]
     return out
 
 

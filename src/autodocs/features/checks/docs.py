@@ -4,20 +4,18 @@ from __future__ import annotations
 import re
 
 from autodocs.features import layout
-from autodocs.foundation import Context, Finding, Severity
+from autodocs.foundation import AutodocsError, Context, Finding, Severity
+from autodocs.platform import yaml_io
 
 _H = "docs"  # 임시 check_id — run_all 이 manifest id 로 교체
-_MERMAID = re.compile(r"```mermaid\s*\n\s*(\w+)", re.M)
+_MERMAID = re.compile(r"```mermaid[^\n]*\n(?:\s*%%[^\n]*\n)*\s*(\w+)", re.M)
 
 
 def _f(msg: str, path: str | None = None, hint: str | None = None) -> Finding:
     return Finding(_H, Severity.ERROR, msg, path, hint)
 
 
-def _concrete_path(spec: dict) -> str | None:
-    """`{id}` 같은 placeholder 가 있는 문서(proposal/adr)는 단일 파일이 아니므로 None."""
-    p = spec["path"]
-    return None if "{" in p else p
+_concrete_path = layout.doc_path
 
 
 def _present_docs(ctx: Context, requirement: str) -> list[Finding]:
@@ -59,29 +57,32 @@ def mermaid_block_present(ctx: Context) -> list[Finding]:
         p = _concrete_path(spec)
         if not p or not ctx.snapshot.has_file(p):
             continue
+        found = None
         for want in spec.get("must_contain", []):
             kind, _, diagram = want.partition(":")
             if kind != "mermaid":
                 continue
-            found = set(_MERMAID.findall(ctx.snapshot.read(p)))
+            if found is None:
+                found = set(_MERMAID.findall(ctx.snapshot.read(p)))
             if diagram not in found:
                 out.append(_f(f"{key}: mermaid {diagram} 블록 없음", p, f"```mermaid\\n{diagram} ...``` 추가"))
     return out
 
 
 def openapi_valid(ctx: Context) -> list[Finding]:
-    """외부 validator 없이 최소 구조만 본다: openapi 3.x, info, paths."""
-    from autodocs.platform import yaml_io  # L1 사용은 허용 (L2 → L1)
-
+    """외부 validator 없이 최소 구조만 본다: openapi 3.x, info, paths. Snapshot 캐시를 통해 읽는다."""
     out = []
     for key, spec in ctx.manifest["docs"]["types"].items():
         p = _concrete_path(spec)
         if spec.get("format") != "openapi" or not p or not ctx.snapshot.has_file(p):
             continue
         try:
-            doc = yaml_io.load(ctx.snapshot.root / p)
-        except Exception as e:  # noqa: BLE001 — YAML 오류는 그대로 보고
-            out.append(_f(f"{key}: YAML 파싱 실패 — {e}", p))
+            doc = yaml_io.loads(ctx.snapshot.read(p))
+        except AutodocsError as e:
+            out.append(_f(f"{key}: {e}", p))
+            continue
+        if not isinstance(doc, dict):
+            out.append(_f(f"{key}: 최상위가 매핑이 아님", p))
             continue
         want = str(spec.get("openapi_version", "3"))
         if not str(doc.get("openapi", "")).startswith(want.split(".")[0]):

@@ -1,6 +1,10 @@
-"""L2 — init: 표준 구조와 필수 문서를 생성한다. 이미 있는 파일은 절대 덮어쓰지 않는다."""
+"""L2 — init: 표준 구조와 필수 문서를 생성한다. 이미 있는 파일·마커는 절대 덮어쓰지 않는다.
+
+모든 경로는 fs.safe_path 를 거친다 (manifest 값도 신뢰하지 않는다).
+"""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -10,38 +14,43 @@ from autodocs.features import layout, profile as profile_mod
 from autodocs.foundation import Profile
 from autodocs.platform import fs, standard
 
+_LEFTOVER = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?")
+
 
 @dataclass
 class InitResult:
     created: list[str] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 def run(manifest: dict, root: Path, profile: Profile, *, with_adapters: bool = True) -> InitResult:
+    root = fs.require_dir(root, "프로젝트 루트")
     res = InitResult()
     subs = _substitutions(manifest, profile)
 
     for d in layout.required_dirs(manifest):
-        _track(res, d + "/", fs.ensure_dir(root / d))
+        _track(res, d + "/", fs.ensure_dir(root, d))
     for d in layout.layer_dirs(manifest, profile).values():
-        _track(res, d + "/", fs.ensure_dir(root / d))
+        _track(res, d + "/", fs.ensure_dir(root, d))
     for key, spec in layout.required_docs(manifest, profile).items():
-        rel = spec["path"]
-        if "{" in rel:
+        rel = layout.doc_path(spec)
+        if rel is None:
             continue
-        _track(res, rel, fs.write_text(root / rel, _render(manifest, spec, subs)))
-    for key, spec in layout.optional_docs(manifest).items():   # 선택 문서는 디렉터리만
-        parent = Path(spec["path"]).parent
-        if str(parent) not in (".", ""):
-            _track(res, f"{parent}/", fs.ensure_dir(root / parent))
+        text = _render(manifest, spec, subs, res)
+        _track(res, rel, fs.write_text(root, rel, text))
+    for spec in layout.optional_docs(manifest).values():   # 선택 문서는 디렉터리만
+        parent = Path(spec["path"]).parent.as_posix()
+        if parent not in (".", ""):
+            _track(res, f"{parent}/", fs.ensure_dir(root, parent))
     if with_adapters:
         for ad in manifest.get("adapters", {}).values():
             p = ad.get("pointer_file")
             if p:
-                _track(res, p, fs.write_text(root / p, _pointer(manifest, subs)))
+                _track(res, p, fs.write_text(root, p, _pointer(manifest, subs)))
 
-    path = profile_mod.save(manifest, root, profile)
-    res.created.append(path.relative_to(root).as_posix())
+    rel, created = profile_mod.save(manifest, root, profile)
+    _track(res, rel, created)
     return res
 
 
@@ -52,17 +61,21 @@ def _substitutions(manifest: dict, profile: Profile) -> dict[str, str]:
         "language": profile.language,
         "standard_version": manifest["standard"]["version"],
         "date": date.today().isoformat(),
-        "context_path": manifest["docs"]["types"]["project_context"]["path"],
+        "context_path": layout.doc_path(manifest["docs"]["types"]["project_context"]) or "",
         "layer_dirs": "\n".join(f"- {lid}: `{d}/`" for lid, d in layout.layer_dirs(manifest, profile).items()),
     }
 
 
-def _render(manifest: dict, spec: dict, subs: dict[str, str]) -> str:
+def _render(manifest: dict, spec: dict, subs: dict[str, str], res: InitResult) -> str:
     tpl = standard.template_path(manifest, spec["template"])
     if not tpl.is_file():   # 템플릿이 아직 없으면 섹션 헤딩만으로 골격 생성
         body = "\n\n".join(f"## {s}\n\n_TODO_" for s in spec.get("sections", []))
         return f"# {spec['title']} — {subs['project_name']}\n\n{body}\n"
-    return Template(tpl.read_text(encoding="utf-8")).safe_substitute(subs)
+    text = Template(tpl.read_text(encoding="utf-8")).safe_substitute(subs)
+    leftover = sorted(set(_LEFTOVER.findall(text)))
+    if leftover:
+        res.warnings.append(f"{spec['template']}: 치환되지 않은 변수 {', '.join(leftover)}")
+    return text
 
 
 def _pointer(manifest: dict, subs: dict[str, str]) -> str:
