@@ -7,7 +7,7 @@
 
 ### Added
 
-- Claude Code 플러그인 어댑터: `.claude-plugin/plugin.json`, `bin/autodocs` 런처, `/std-init` `/std-adopt` `/std-audit` `/std-check`, `standard-workflow` 스킬, SessionStart(audit 주입)·PostToolUse(docs 문서 조언)·Stop(세션당 1회 알림) 훅. hooks.json 계약 테스트와 훅 subprocess 테스트 21건
+- Claude Code 플러그인 어댑터: `.claude-plugin/plugin.json`, `bin/autodocs` 런처, `/std-init` `/std-adopt` `/std-audit` `/std-check`, `standard-workflow` 스킬, SessionStart(audit 주입)·PostToolUse(docs 문서 조언)·Stop(세션당 1회 알림) 훅. hooks.json 계약 테스트와 훅 subprocess 테스트, 실세션 검증 증거(`tests/contract/live-run.json`)와 freshness 테스트 24건
 - 표준 SSOT `standard/manifest.yaml` v0.1.0 — 문서 10종, 4계층, 검사 C01~C11, 4상태
 - 결정 목록 `standard/DECISIONS.md` (D-01·03·04·05 확정)
 - 문서 템플릿 11종 `standard/templates/`

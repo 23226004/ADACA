@@ -8,7 +8,7 @@ allowed-tools: Bash(python3 *), Bash(*/bin/autodocs *), Read, Glob, AskUserQuest
 
 ## 1단계 — 엔진
 
-1. 프로필을 `/std-init` 과 같은 방식으로 확보한다. 언어·API·DB 여부는 저장소를 훑어(pyproject.toml, package.json, *.csproj, routers/, migrations/ 등) **제안**하되 사용자 확인을 받는다.
+1. 프로필을 확보한다. 인자에 `--name`, `--kind`, `--language` 가 모두 있으면 묻지 않는다. 빠진 값은 저장소를 훑어(pyproject.toml, package.json, *.csproj, routers/, migrations/ 등) **제안**하고 AskUserQuestion 으로 확인받는다. `--api` / `--db` 는 근거(라우터·마이그레이션 폴더)가 보일 때만 제안한다.
 2. 실행:
 
 ```bash

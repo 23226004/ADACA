@@ -30,6 +30,8 @@ claude --plugin-dir ~/projects/autodocs        # 개발 중: 세션 한정 로�
 claude plugin validate ~/projects/autodocs      # 구조 검증
 ```
 
+실세션 검증(Claude Code 2.1.270, `tests/contract/live-run.json`): `${CLAUDE_PLUGIN_ROOT}` 치환, SessionStart 주입, PostToolUse 조언, Stop 1회 알림 모두 확인됨. hooks.json 을 바꾸면 freshness 테스트가 재검증을 요구한다.
+
 세션이 시작되면 SessionStart 훅이 `audit` 를 돌려 상태(new/legacy/partial/compliant)와 다음 행동을 컨텍스트로 주입한다.
 그 뒤 `/std-init`(신규), `/std-adopt`(기존), `/std-audit`, `/std-check` 를 쓴다. 작업 절차는 `standard-workflow` 스킬이 안내한다.
 `docs/**/*.md` 를 쓰면 PostToolUse 훅이 그 문서의 형식 문제만 조언하고(차단 없음), 턴이 끝날 때 Stop 훅이 error 가 남아 있으면 세션당 한 번 알린다.

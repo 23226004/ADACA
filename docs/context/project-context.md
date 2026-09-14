@@ -10,7 +10,7 @@
 
 ## 현재 상태
 
-- 단계: 개발 (엔진 v0.1.0 안정화 완료, Claude Code 플러그인 어댑터 v0.1.0 — 실제 Claude Code 세션 검증 전)
+- 단계: 개발 (엔진 v0.1.0 안정화 완료, Claude Code 플러그인 어댑터 v0.1.0 — 실세션 검증 완료 2026-09-14, Claude Code 2.1.270)
 - 최신 버전: 0.1.0 (미배포)
 - 표준 버전: 0.1.0 — 결정 D-01~05 확정, D-06~10 열림 (`standard/DECISIONS.md`)
 
@@ -58,11 +58,11 @@
 
 | 항목 | 상태 | 비고 |
 |---|---|---|
-| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 테스트 131개 (unit 110 + contract 21) |
+| 엔진 골격 (init/adopt/audit/check, C01~C11) | 완료 | 테스트 134개 (unit 110 + contract 24) |
 | PROP-001 리뷰 수정 1~5단계 + 재검증 4회 | 완료 | `docs/proposals/PROP-001-engine-review.md` |
 | 문서 템플릿 11종 | 완료 | `standard/templates/` |
-| Claude Code 플러그인 (commands 4·skill 1·hooks 3) | 완료 (실세션 미검증) | `tests/contract/` 21건. `claude --plugin-dir` 로 실제 세션 검증 필요 |
-| Codex / Gemini 어댑터 | 예정 | Claude 완성 후 |
+| Claude Code 플러그인 (commands 4·skill 1·hooks 3) | 완료 (실세션 검증됨) | `tests/contract/` 24건 + `live-run.json` 증거. hooks.json 변경 시 재검증 필요 (freshness 테스트) |
+| Codex / Gemini 어댑터 | 다음 | 같은 manifest 위에 AGENTS.md+skill / GEMINI.md+extension |
 | 표준 결정 D-02, D-06~D-10 | 열림 | 기본값으로 진행 중 |
 
 ---

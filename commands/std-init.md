@@ -5,7 +5,7 @@ allowed-tools: Bash(python3 *), Bash(*/bin/autodocs *), Read, AskUserQuestion
 ---
 
 1. 먼저 `"${CLAUDE_PLUGIN_ROOT}/bin/autodocs" --root "$PWD" audit` 를 실행해 상태를 확인한다. `legacy` 면 이 명령 대신 `/std-adopt` 를 안내하고 멈춘다.
-2. 프로필이 인자로 주어지지 않았으면 AskUserQuestion 으로 묻는다. 물어볼 것은 프로젝트 이름(영문·숫자·하이픈), 종류(kind), 언어, API 제공 여부, 데이터베이스 사용 여부. 허용값은 `${CLAUDE_PLUGIN_ROOT}/standard/manifest.yaml` 의 `project_profile.schema` 를 읽어 그대로 제시한다. preset 은 묻지 않는다 — 언어별 기본값이 있다.
+2. 인자에 `--name`, `--kind`, `--language` 가 모두 있으면 **묻지 말고 바로 실행**한다. `--api` / `--db` 는 생략 시 "아니오" 이며 따로 묻지 않는다. 세 필수 값 중 빠진 것이 있을 때만 AskUserQuestion 으로 빠진 것을 묻는다(이름은 영문·숫자·하이픈). 허용값은 `${CLAUDE_PLUGIN_ROOT}/standard/manifest.yaml` 의 `project_profile.schema` 를 Read 로 읽어 그대로 제시한다. preset 은 묻지 않는다 — 언어별 기본값이 있다.
 3. 실행:
 
 ```bash
