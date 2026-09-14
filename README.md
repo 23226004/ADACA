@@ -21,13 +21,43 @@ AI 코딩 도구(Claude, Codex, Gemini)로 작업하는 모든 프로젝트가 *
 
 ## 실행 방법
 
-### Claude Code 플러그인으로 (권장)
+### 설치 (Claude Code 플러그인)
 
-이 저장소가 곧 플러그인이다 (`.claude-plugin/plugin.json`, `commands/`, `skills/`, `hooks/`, `bin/`).
+이 저장소가 곧 플러그인이자 marketplace 다 (`.claude-plugin/plugin.json` + `marketplace.json`). 전제: Claude Code CLI, Python 3.10+, (Windows) Git Bash.
 
 ```bash
-claude --plugin-dir ~/projects/autodocs        # 개발 중: 세션 한정 로드
-claude plugin validate ~/projects/autodocs      # 구조 검증
+# macOS / Linux / Git Bash — 한 줄 설치
+curl -fsSL https://raw.githubusercontent.com/23226004/ADACA/main/install.sh | sh
+```
+```powershell
+# Windows PowerShell
+irm https://raw.githubusercontent.com/23226004/ADACA/main/install.ps1 | iex
+```
+
+스크립트가 하는 일은 두 명령뿐이다 (직접 실행해도 된다):
+
+```bash
+claude plugin marketplace add 23226004/ADACA
+claude plugin install autodocs@adaca
+```
+
+팀 프로젝트에 자동 설치되게 하려면 그 프로젝트의 `.claude/settings.json` 에 다음을 넣는다. 폴더를 신뢰한 팀원에게 자동으로 설치된다.
+
+```json
+{
+  "extraKnownMarketplaces": { "adaca": { "source": { "source": "github", "repo": "23226004/ADACA" } } },
+  "enabledPlugins": { "autodocs@adaca": true }
+}
+```
+
+업데이트는 `claude plugin marketplace update adaca && claude plugin update autodocs@adaca`. 새 버전을 배포할 때는 `plugin.json` 과 `marketplace.json` 의 `version` 을 올려야 기존 사용자에게 반영된다.
+
+개발 중에는 설치 없이 로드한다:
+
+```bash
+claude --plugin-dir ~/projects/autodocs        # 세션 한정 로드
+claude plugin validate ~/projects/autodocs      # plugin + marketplace 구조 검증
+sh install.sh --dev ~/projects/autodocs         # 로컬 체크아웃을 marketplace 로 등록해 설치
 ```
 
 실세션 검증(Claude Code 2.1.270, `tests/contract/live-run.json`): `${CLAUDE_PLUGIN_ROOT}` 치환, SessionStart 주입, PostToolUse 조언, Stop 1회 알림 모두 확인됨. hooks.json 을 바꾸면 freshness 테스트가 재검증을 요구한다.
@@ -36,11 +66,13 @@ claude plugin validate ~/projects/autodocs      # 구조 검증
 그 뒤 `/std-init`(신규), `/std-adopt`(기존), `/std-audit`, `/std-check` 를 쓴다. 작업 절차는 `standard-workflow` 스킬이 안내한다.
 `docs/**/*.md` 를 쓰면 PostToolUse 훅이 그 문서의 형식 문제만 조언하고(차단 없음), 턴이 끝날 때 Stop 훅이 error 가 남아 있으면 세션당 한 번 알린다.
 
-### CLI 로
+### CLI 로 (플러그인 없이, CI 등)
 
 ```bash
-"~/projects/autodocs/bin/autodocs" --root /path/to/project audit      # 설치 없이, 저장소의 엔진·표준 사용
-pip install -e ".[dev]" && autodocs --root /path/to/project audit    # 또는 설치
+pip install git+https://github.com/23226004/ADACA.git                # 표준(standard/) 이 패키지에 동봉됨
+autodocs --root /path/to/project check                                # PR 게이트: exit 1 이면 위반
+sh ~/projects/autodocs/bin/py.sh ~/projects/autodocs/bin/autodocs --root . audit   # 설치 없이 체크아웃에서
+pip install -e ".[dev]" && autodocs --root /path/to/project audit    # 개발 설치
 autodocs --root /path/to/project init --name my-app --kind web --language python --api --db
 pytest
 ```

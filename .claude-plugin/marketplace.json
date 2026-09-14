@@ -1,0 +1,24 @@
+{
+  "name": "adaca",
+  "owner": {
+    "name": "Contech-DX",
+    "url": "https://github.com/23226004/ADACA"
+  },
+  "description": "Contech-DX 엔지니어링 표준 도구 — 문서·구조·워크플로우 표준을 AI 코딩 도구가 따르게 한다",
+  "plugins": [
+    {
+      "name": "autodocs",
+      "source": "./",
+      "description": "AI Harness Engineering Standard — 신규 프로젝트는 표준대로 생성(init), 기존 프로젝트는 표준으로 옮기는 계획(adopt), 작업 전후 준수 판정(audit/check)",
+      "version": "0.1.0",
+      "repository": "https://github.com/23226004/ADACA",
+      "keywords": [
+        "standard",
+        "documentation",
+        "architecture",
+        "audit"
+      ],
+      "category": "productivity"
+    }
+  ]
+}

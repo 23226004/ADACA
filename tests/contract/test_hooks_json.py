@@ -93,7 +93,7 @@ def test_commands_resolve_to_plugin_files(cfg):
 
 def test_plugin_json_minimal_keys():
     pj = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-    assert set(pj) <= {"name", "version", "description"} and pj["name"] == "autodocs"
+    assert set(pj) <= {"name", "version", "description", "author"} and pj["name"] == "autodocs"
     assert re.match(r"^[a-z0-9-]+$", pj["name"])
 
 
@@ -116,3 +116,16 @@ def test_manifest_adapter_declaration_matches_plugin():
         assert (REPO / "commands" / f"{c}.md").is_file(), c
     for s in provides["skills"]:
         assert (REPO / "skills" / s / "SKILL.md").is_file(), s
+
+
+def test_marketplace_json_points_at_this_repo():
+    """marketplace.json 은 이 저장소 자신을 플러그인으로 선언하고, 버전은 plugin.json 과 같아야 한다."""
+    mk = json.loads((REPO / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    pj = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert mk["name"] == "adaca" and mk["owner"]["name"]
+    (entry,) = [p for p in mk["plugins"] if p["name"] == "autodocs"]
+    assert entry["source"] == "./" and "\\" not in entry["source"]
+    assert entry["version"] == pj["version"], "plugin.json 과 marketplace.json 의 version 이 다르면 사용자에게 갱신이 전달되지 않음"
+    for f in ("install.sh", "install.ps1"):
+        text = (REPO / f).read_text(encoding="utf-8")
+        assert "23226004/ADACA" in text and '"adaca"' in text and '"autodocs"' in text
